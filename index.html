@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#2c1e5c">
+  <title>さたぷよ</title>
+  <link rel="icon" href="assets/ui/icon.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="bg" aria-hidden="true">
+    <div class="bg-layer"></div>
+    <div class="bg-layer"></div>
+    <div class="bg-tint"></div>
+    <div class="bg-bubbles" id="bg-bubbles"></div>
+  </div>
+
+  <!-- タイトル -->
+  <section class="screen" id="screen-title">
+    <div class="title-wrap">
+      <img class="logo" id="logo" alt="さたぷよ">
+      <div class="title-faces" id="title-faces"></div>
+      <button class="start-btn" id="btn-start">PRESS START</button>
+      <p class="small-note">クリック / タップ / Enter ではじめる</p>
+    </div>
+  </section>
+
+  <!-- メインメニュー -->
+  <section class="screen" id="screen-menu">
+    <div class="panel menu-panel">
+      <img class="logo logo-small" alt="さたぷよ">
+      <div class="menu-list">
+        <button class="menu-btn c1" data-mode="endless">
+          <span class="menu-title">とことんモード</span>
+          <span class="menu-sub">つみあがるまで ずっと / ベスト <b id="best-endless">0</b></span>
+        </button>
+        <button class="menu-btn c2" data-mode="time">
+          <span class="menu-title">タイムアタック</span>
+          <span class="menu-sub"><span id="ta-seconds">120</span>びょうで スコアかせぎ / ベスト <b id="best-time">0</b></span>
+        </button>
+        <div class="menu-row">
+          <button class="menu-btn c3 half" data-go="ranking"><span class="menu-title">ランキング</span></button>
+          <button class="menu-btn c4 half" data-go="gallery"><span class="menu-title">ずかん</span></button>
+        </div>
+        <div class="menu-row">
+          <button class="menu-btn c5 half" data-go="settings"><span class="menu-title">せってい</span></button>
+          <button class="menu-btn c6 half" data-go="howto"><span class="menu-title">あそびかた</span></button>
+        </div>
+      </div>
+      <button class="link-btn" data-go="title">タイトルへもどる</button>
+    </div>
+  </section>
+
+  <!-- ゲーム -->
+  <section class="screen" id="screen-game">
+    <div class="game-layout" id="game-layout">
+      <div class="field-wrap" id="field-wrap">
+        <canvas id="field"></canvas>
+        <div class="fx-layer" id="fx-layer"></div>
+      </div>
+      <aside class="side">
+        <div class="side-box next-box">
+          <div class="side-label">NEXT</div>
+          <canvas id="next"></canvas>
+        </div>
+        <div class="side-box">
+          <div class="side-label">SCORE</div>
+          <div class="side-value score" id="hud-score">0</div>
+        </div>
+        <div class="side-box">
+          <div class="side-label">れんさ</div>
+          <div class="side-value"><span id="hud-chain">0</span><small> / MAX <span id="hud-max">0</span></small></div>
+        </div>
+        <div class="side-box">
+          <div class="side-label" id="hud-time-label">TIME</div>
+          <div class="side-value" id="hud-time">0:00</div>
+        </div>
+        <div class="side-box">
+          <div class="side-label">LEVEL</div>
+          <div class="side-value" id="hud-level">1</div>
+        </div>
+        <button class="pause-btn" id="btn-pause" aria-label="ポーズ">II</button>
+      </aside>
+    </div>
+    <div class="touch-pad" id="touch-pad">
+      <button data-act="left" aria-label="左">◀</button>
+      <button data-act="down" aria-label="下">▼</button>
+      <button data-act="right" aria-label="右">▶</button>
+      <button data-act="hard" class="t-hard" aria-label="一気に落とす">⤓</button>
+      <button data-act="rotL" class="t-rot" aria-label="左回転">↺</button>
+      <button data-act="rotR" class="t-rot" aria-label="右回転">↻</button>
+    </div>
+
+    <div class="modal" id="pause-modal" hidden>
+      <div class="panel modal-panel">
+        <h2>ポーズ</h2>
+        <button class="menu-btn c1" id="btn-resume"><span class="menu-title">つづける</span></button>
+        <button class="menu-btn c2" id="btn-restart"><span class="menu-title">さいしょから</span></button>
+        <button class="menu-btn c3" id="btn-quit"><span class="menu-title">メニューへ</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- リザルト -->
+  <section class="screen" id="screen-result">
+    <div class="panel result-panel">
+      <h2 id="result-title">けっか</h2>
+      <img class="result-face" id="result-face" alt="">
+      <div class="result-mode" id="result-mode"></div>
+      <div class="result-score"><span id="result-score">0</span><small>てん</small></div>
+      <div class="result-stats">
+        <div>さいだい れんさ<b id="result-chain">0</b></div>
+        <div>おとした数<b id="result-pieces">0</b></div>
+      </div>
+      <div class="rankin" id="rankin" hidden>
+        <p class="rankin-msg"><b id="rankin-pos">1</b>い ランクイン！なまえをいれてね</p>
+        <form id="name-form" class="name-form">
+          <input id="name-input" maxlength="10" autocomplete="off" placeholder="なまえ">
+          <button type="submit" class="menu-btn c1 small-btn"><span class="menu-title">とうろく</span></button>
+        </form>
+      </div>
+      <div class="menu-row">
+        <button class="menu-btn c2 half" id="btn-retry"><span class="menu-title">もういちど</span></button>
+        <button class="menu-btn c3 half" data-go="menu"><span class="menu-title">メニューへ</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ランキング -->
+  <section class="screen" id="screen-ranking" data-back="menu">
+    <div class="panel wide-panel">
+      <h2>ランキング</h2>
+      <div class="tabs" id="rank-tabs">
+        <button data-tab="endless" class="active">とことん</button>
+        <button data-tab="time">タイムアタック</button>
+      </div>
+      <ol class="rank-list" id="rank-list"></ol>
+      <div class="menu-row">
+        <button class="link-btn danger" id="btn-rank-reset">このランキングをけす</button>
+        <button class="menu-btn c3 half" data-go="menu"><span class="menu-title">もどる</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ずかん -->
+  <section class="screen" id="screen-gallery" data-back="menu">
+    <div class="panel wide-panel">
+      <h2>さたろう ずかん</h2>
+      <p class="hint">タップで ON / OFF。ONのさたろうだけが おちてくる。</p>
+      <div class="gallery" id="gallery"></div>
+      <div class="menu-row">
+        <button class="link-btn" id="btn-all-on">ぜんぶ ON</button>
+        <button class="menu-btn c3 half" data-go="menu"><span class="menu-title">もどる</span></button>
+      </div>
+    </div>
+  </section>
+
+  <!-- せってい -->
+  <section class="screen" id="screen-settings" data-back="menu">
+    <div class="panel wide-panel">
+      <h2>せってい</h2>
+      <div class="setting">
+        <span class="setting-name">ぷよの しゅるい</span>
+        <div class="seg" data-key="colors">
+          <button data-val="3">3</button><button data-val="4">4</button><button data-val="5">5</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="setting-name">おちる スピード</span>
+        <div class="seg" data-key="speed">
+          <button data-val="slow">ゆっくり</button><button data-val="normal">ふつう</button><button data-val="fast">はやい</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="setting-name">おちる いちガイド</span>
+        <div class="seg" data-key="ghost">
+          <button data-val="true">ON</button><button data-val="false">OFF</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="setting-name">こうかおん</span>
+        <div class="seg" data-key="se">
+          <button data-val="true">ON</button><button data-val="false">OFF</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="setting-name">BGM</span>
+        <div class="seg" data-key="bgm">
+          <button data-val="true">ON</button><button data-val="false">OFF</button>
+        </div>
+      </div>
+      <div class="setting">
+        <span class="setting-name">おんりょう</span>
+        <input type="range" id="volume" min="0" max="100" step="5">
+      </div>
+      <button class="menu-btn c3" data-go="menu"><span class="menu-title">もどる</span></button>
+    </div>
+  </section>
+
+  <!-- あそびかた -->
+  <section class="screen" id="screen-howto" data-back="menu">
+    <div class="panel wide-panel howto">
+      <h2>あそびかた</h2>
+      <p>おなじ <b>さたろう</b>（おなじ わくの色）を <b>4つ以上</b> くっつけると きえる！<br>
+        きえたあとに おちてきたぷよが また4つそろうと <b>れんさ</b>。れんさが多いほど 点数がドカンとふえる。</p>
+      <p>左から3れつめの いちばん上（<span class="x-mark">✕</span>じるし）まで つみあがったら ゲームオーバー。</p>
+      <table class="keys">
+        <tr><th>うごかす</th><td><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd></td></tr>
+        <tr><th>はやく おとす</th><td><kbd>↓</kbd> / <kbd>S</kbd></td></tr>
+        <tr><th>いっきに おとす</th><td><kbd>↑</kbd> / <kbd>W</kbd> / <kbd>Space</kbd></td></tr>
+        <tr><th>右に まわす</th><td><kbd>X</kbd> / <kbd>K</kbd></td></tr>
+        <tr><th>左に まわす</th><td><kbd>Z</kbd> / <kbd>J</kbd></td></tr>
+        <tr><th>ポーズ</th><td><kbd>Esc</kbd> / <kbd>P</kbd></td></tr>
+      </table>
+      <p class="hint">スマホは 画面下のボタンで操作。せまいところで回らないときは 回転ボタンを2回すばやく押すと 上下が入れかわる。</p>
+      <button class="menu-btn c3" data-go="menu"><span class="menu-title">もどる</span></button>
+    </div>
+  </section>
+
+  <script src="js/config.js"></script>
+  <script src="js/audio.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

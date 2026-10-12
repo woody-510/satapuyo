@@ -1,0 +1,8 @@
+# 元の写真（ゲームでは assets/ の加工済み画像を使う）
+images/
+images2/
+
+.claude/
+__pycache__/
+.DS_Store
+Thumbs.db
