@@ -6,3 +6,6 @@ images2/
 __pycache__/
 .DS_Store
 Thumbs.db
+
+# BGM 作成時の一時ファイル
+assets/sound/*.wav

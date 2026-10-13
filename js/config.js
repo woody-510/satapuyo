@@ -45,10 +45,12 @@ window.GAME_CONFIG = {
   backgroundSeconds: 12, // 1枚あたりの表示時間
 
   // 音ファイル。null のままだと内蔵のピコピコ音が鳴る。
-  // 例: bgmGame: 'assets/sound/bgm_game.mp3'
+  // BGM は tools/music/compose.mjs で作ったもの（loopStart〜loopEnd をつなぎ目なしでくり返す）。
+  // 自分の曲に差し替えるときは bgmGame: 'assets/sound/my_song.mp3' のように書けばファイル全体をループ。
   sounds: {
-    bgmTitle: null,
-    bgmGame: null,
+    bgmTitle: { src: 'assets/sound/bgm_title.mp3', loopStart: 0.1, loopEnd: 27.53 }, // タイトル：テーマソング
+    bgmMenu: { src: 'assets/sound/bgm_menu.mp3', loopStart: 0.1, loopEnd: 48.1 },    // メニュー：落ちついた曲
+    bgmGame: { src: 'assets/sound/bgm_game.mp3', loopStart: 0.1, loopEnd: 51.3 },    // ゲーム中：ちょい激しい曲
     move: null,
     rotate: null,
     land: null,

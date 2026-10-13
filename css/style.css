@@ -529,3 +529,31 @@ kbd {
   -webkit-text-stroke: 8px #fff;
   paint-order: stroke fill;
 }
+
+/* ---------- 最初の「タップしてはじめる」 ---------- */
+.splash {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(30, 18, 70, 0.72);
+  cursor: pointer;
+  transition: opacity 0.35s;
+}
+.splash.closing { opacity: 0; pointer-events: none; }
+.splash-inner { text-align: center; color: #fff; animation: blink 1.6s ease-in-out infinite; }
+.splash-note {
+  width: 96px;
+  height: 96px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: var(--c1);
+  border: 5px solid #fff;
+  box-shadow: 0 7px 0 var(--c1d);
+  font-size: 52px;
+  line-height: 84px;
+}
+.splash p { margin: 0 0 6px; font-size: clamp(20px, 5vw, 28px); font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3); }
+.splash small { font-size: 14px; font-weight: 500; opacity: 0.85; }

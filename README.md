@@ -48,6 +48,7 @@ python -m http.server 8000
 | `assets/bg/field.png` | フィールドの背景 | 384x768 |
 | `assets/ui/logo.png` | タイトルロゴ（透過PNG） | 1000x340 |
 | `assets/ui/icon.png` | ブラウザのタブのアイコン | 128x128 |
+| `assets/sound/bgm_title.mp3` / `bgm_menu.mp3` / `bgm_game.mp3` | BGM（タイトル / メニュー / ゲーム中） | 何秒でもOK |
 
 細かい設定は **`js/config.js`** にまとまっている。
 
@@ -57,6 +58,25 @@ python -m http.server 8000
   （例: `bgmGame: 'assets/sound/bgm_game.mp3'`）
 - `ringColors` … ぷよの枠の色
 - `title` … ゲームのタイトル
+
+## BGM
+
+`tools/music/compose.mjs` の中でシンセを鳴らして作曲している（外部の音源は使っていない）。
+
+| 曲 | ジャンル | テンポ / 長さ |
+| --- | --- | --- |
+| タイトル（テーマソング） | 8bit チップチューン。ファミコン風の矩形波・三角波・ノイズドラム | 140 BPM / 16小節（約27秒） |
+| メニュー（落ちついた曲） | ローファイ・ヒップホップ。エレピ、ノイズのシェイカー、レコードのプチプチ | 80 BPM / 16小節（約48秒） |
+| ゲーム中（ちょい激しい） | エレクトロ・ダンス。うねるベース、ノイズのシェイカー、盛り上げてからドン | 150 BPM / 32小節（約51秒） |
+
+どれもつなぎ目なしでループする。曲をいじって作り直すときは（Node.js と ffmpeg が必要）:
+
+```bash
+node tools/music/compose.mjs
+```
+
+最後に表示されるループ位置（`loopStart` / `loopEnd`）を `js/config.js` の `sounds` に書く。
+自分で作った mp3 にするなら `bgmGame: 'assets/sound/my_song.mp3'` のようにファイル名だけ書けば、ファイル全体をループする。
 
 ### 元の写真から作り直す
 
@@ -82,9 +102,9 @@ python tools/make_assets.py
 index.html        画面（タイトル・メニュー・ゲーム・リザルトなど）
 css/style.css     見た目
 js/config.js      画像・音・タイトルなどの設定
-js/audio.js       効果音とBGM（ファイルがなければ内蔵音）
+js/audio.js       効果音とBGMの再生（ファイルがなければ内蔵音）
 js/game.js        ぷよぷよ本体（盤面・回転・連鎖・得点・描画）
 js/main.js        画面遷移・入力・ランキング・ずかん・せってい
 assets/           画像
-tools/            画像作成スクリプト
+tools/            画像作成スクリプト・BGM作曲スクリプト
 ```

@@ -3,8 +3,13 @@ const Sound = (() => {
   const cfg = window.GAME_CONFIG.sounds || {};
   let ctx = null, master, seGain, bgmGain, noiseBuf;
   const buffers = {};
+  const loads = {};
   const state = { se: true, bgm: true, volume: 0.8 };
-  let bgm = null; // { name, stop() }
+  const BGM_KEY = { title: 'bgmTitle', menu: 'bgmMenu', game: 'bgmGame' };
+  const XF = 0.03; // ループのつなぎ目を重ねる秒数
+  let bgm = null; // { name, key, stop() }
+  // config では 'path.mp3' でも { src, loopStart, loopEnd } でもOK
+  const srcOf = (v) => (typeof v === 'string' ? v : v && v.src);
 
   function init() {
     if (ctx) return;
@@ -18,22 +23,34 @@ const Sound = (() => {
     seGain.gain.value = 0.9;
     seGain.connect(master);
     bgmGain = ctx.createGain();
-    bgmGain.gain.value = 0.45;
+    bgmGain.gain.value = 0.5;
     bgmGain.connect(master);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
-    for (const [key, path] of Object.entries(cfg)) {
-      if (!path) continue;
-      fetch(path)
+    // 効果音は先に読んでおく。BGM は鳴らすときに読む
+    for (const key of Object.keys(cfg)) if (!key.startsWith('bgm')) load(key);
+    // タブを裏にしたら音を止める（電池にもやさしい）
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) ctx.suspend();
+      else ctx.resume();
+    });
+  }
+
+  function load(key) {
+    const path = srcOf(cfg[key]);
+    if (!path) return Promise.resolve(null);
+    if (!loads[key]) {
+      loads[key] = fetch(path)
         .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
-        .then((ab) => ctx.decodeAudioData(ab))
-        .then((buf) => {
-          buffers[key] = buf;
-          if (bgm && bgm.key === key) playBgm(bgm.name, true);
-        })
-        .catch(() => console.warn('音ファイルを読み込めませんでした:', path));
+        .then((ab) => new Promise((ok, ng) => ctx.decodeAudioData(ab, ok, ng)))
+        .then((buf) => (buffers[key] = buf))
+        .catch(() => {
+          console.warn('音ファイルを読み込めませんでした:', path);
+          return null;
+        });
     }
+    return loads[key];
   }
 
   // ブラウザは操作があるまで音を出せないので、最初のクリック/キーで起こす
@@ -90,7 +107,7 @@ const Sound = (() => {
 
   function play(name, arg) {
     if (!state.se || !ctx) return;
-    if (buffers[name]) {
+    if (buffers[name] && !name.startsWith('bgm')) {
       const s = ctx.createBufferSource();
       s.buffer = buffers[name];
       s.connect(seGain);
@@ -155,20 +172,83 @@ const Sound = (() => {
 
   function playBgm(name, force = false) {
     if (!ctx) return;
-    const key = name === 'title' ? 'bgmTitle' : 'bgmGame';
     if (!force && bgm && bgm.name === name) return;
     stopBgm();
-    if (!state.bgm) { bgm = { name, key, stop() {} }; return; }
-    if (buffers[key]) {
-      const s = ctx.createBufferSource();
-      s.buffer = buffers[key];
-      s.loop = true;
-      s.connect(bgmGain);
-      s.start();
-      bgm = { name, key, stop: () => s.stop() };
-    } else {
-      bgm = { name, key, stop: startSynthBgm(name) };
+    const key = BGM_KEY[name];
+    const cur = (bgm = { name, key, dead: false, stop() { this.dead = true; } });
+    if (!state.bgm) return;
+    if (!srcOf(cfg[key])) {
+      cur.stop = startSynthBgm(SONGS[name] ? name : 'title');
+      return;
     }
+    load(key).then((buf) => {
+      if (cur.dead) return;
+      if (buf) startBuffer(cur, buf, cfg[key]);
+      else cur.stop = startSynthBgm(SONGS[name] ? name : 'title');
+      // ほかの曲も裏で読んでおく
+      Object.values(BGM_KEY).forEach((k) => load(k));
+    });
+  }
+
+  // ファイルのBGMをループ再生。loopStart/loopEnd があれば、つなぎ目を少し重ねて
+  // （mp3 でもプチッといわないように）次の回を予約していく
+  function startBuffer(cur, buf, val) {
+    const out = ctx.createGain();
+    out.connect(bgmGain);
+    const t0 = ctx.currentTime + 0.05;
+    out.gain.setValueAtTime(0, t0);
+    out.gain.linearRampToValueAtTime(1, t0 + 0.6);
+    const sources = new Set();
+    const hasLoop = typeof val === 'object' && val.loopEnd > 0;
+    if (!hasLoop) {
+      const s = ctx.createBufferSource();
+      s.buffer = buf;
+      s.loop = true;
+      s.connect(out);
+      s.start(t0);
+      sources.add(s);
+    } else {
+      const ls = val.loopStart || 0;
+      const le = Math.min(val.loopEnd, buf.duration - XF);
+      let at = t0, first = true;
+      const queue = () => {
+        if (cur.dead) return;
+        const s = ctx.createBufferSource();
+        s.buffer = buf;
+        const g = ctx.createGain();
+        s.connect(g).connect(out);
+        const offset = first ? 0 : ls;
+        const len = le - offset;
+        if (!first) {
+          g.gain.setValueAtTime(0, at);
+          g.gain.linearRampToValueAtTime(1, at + XF);
+        }
+        g.gain.setValueAtTime(1, at + len);
+        g.gain.linearRampToValueAtTime(0, at + len + XF);
+        s.start(at, offset, len + XF);
+        s.onended = () => {
+          sources.delete(s);
+          queue();
+        };
+        sources.add(s);
+        at += len;
+        first = false;
+      };
+      queue();
+      queue(); // いつも1回ぶん先まで予約しておく
+    }
+    cur.stop = () => {
+      cur.dead = true;
+      const t = ctx.currentTime;
+      out.gain.cancelScheduledValues(t);
+      out.gain.setValueAtTime(out.gain.value, t);
+      out.gain.linearRampToValueAtTime(0, t + 0.35);
+      sources.forEach((s) => {
+        s.onended = null;
+        try { s.stop(t + 0.4); } catch {}
+      });
+      setTimeout(() => out.disconnect(), 800);
+    };
   }
 
   function stopBgm() {

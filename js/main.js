@@ -111,7 +111,8 @@
   // ---------------- 画面切りかえ ----------------
   let screen = null;
   let audioReady = false;
-  const MENU_SCREENS = ['title', 'menu', 'ranking', 'gallery', 'settings', 'howto', 'result'];
+  // 画面ごとの曲：タイトルはテーマソング、ゲーム中は激しめ、それ以外は落ちついた曲
+  const bgmFor = (name) => (name === 'title' ? 'title' : name === 'game' ? 'game' : 'menu');
 
   function show(name) {
     screen = name;
@@ -123,7 +124,7 @@
     if (name === 'gallery') renderGallery();
     if (name === 'settings') renderSettings();
     if (name === 'title') renderTitleFaces();
-    if (audioReady && MENU_SCREENS.includes(name)) Sound.playBgm('title');
+    if (audioReady) Sound.playBgm(bgmFor(name));
     if (name !== 'game') stopLoop();
     focusFirst();
   }
@@ -139,7 +140,7 @@
     if (audioReady) return;
     audioReady = true;
     Sound.unlock();
-    if (screen !== 'game') Sound.playBgm('title');
+    Sound.playBgm(bgmFor(screen));
   }
   window.addEventListener('pointerdown', unlockAudio, { once: false });
   window.addEventListener('keydown', unlockAudio, { once: false });
@@ -173,6 +174,23 @@
       box.appendChild(img);
     });
   }
+  // 最初の「タップしてはじめる」：ブラウザは操作があるまで音を出せないので、ここで音を起こす
+  const splash = $('#splash');
+  function closeSplash() {
+    if (!splash.isConnected) return;
+    unlockAudio();
+    splash.classList.add('closing');
+    setTimeout(() => splash.remove(), 400);
+    focusFirst();
+  }
+  splash.addEventListener('click', closeSplash);
+  window.addEventListener('keydown', (e) => {
+    if (!splash.isConnected || splash.classList.contains('closing')) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    closeSplash();
+  }, true);
+
   $('#screen-title').addEventListener('click', () => {
     if (screen !== 'title') return;
     unlockAudio();
@@ -225,7 +243,6 @@
     Object.assign(hud, { score: -1, shown: 0, chain: -1, max: -1, time: '', level: -1, warn: null });
     $('#hud-time-label').textContent = mode === 'time' ? 'のこり' : 'TIME';
     layout();
-    Sound.playBgm('game');
     startLoop();
   }
 
