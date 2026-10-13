@@ -317,6 +317,36 @@ function riser(L, R, s0, o, rand) {
   }
 }
 
+// タム（フィル用）
+function tom(L, R, s0, o, rand) {
+  const { vel = 0.5, f = 140, pan = 0 } = o;
+  const n = Math.ceil(0.45 * SR);
+  const [gl, gr] = panGains(pan);
+  let ph = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / SR;
+    ph += (f * (1 + 0.7 * Math.exp(-t / 0.02)) * (1 - 0.2 * t)) / SR;
+    let v = Math.sin(TAU * ph) * Math.exp(-t / 0.17) + 0.35 * (rand() * 2 - 1) * Math.exp(-t / 0.015);
+    v = Math.tanh(v * 1.8) / Math.tanh(1.8);
+    if (t > 0.4) v *= (0.45 - t) / 0.05;
+    add(L, R, s0 + i, v * vel, gl, gr);
+  }
+}
+
+// ドーン（盛り上がりの頭に入れる低音）
+function boom(L, R, s0, o) {
+  const { vel = 0.6 } = o;
+  const n = Math.ceil(1.4 * SR);
+  let ph = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / SR;
+    ph += (32 + 60 * Math.exp(-t / 0.12)) / SR;
+    let v = Math.sin(TAU * ph) * Math.exp(-t / 0.6) * Math.min(1, t / 0.003);
+    if (t > 1.3) v *= (1.4 - t) / 0.1;
+    add(L, R, s0 + i, Math.tanh(v * 1.5) * vel, 0.707, 0.707);
+  }
+}
+
 // ファミコン風ドラム
 function chipKick(L, R, s0, o) {
   const { vel = 0.6 } = o;
@@ -664,24 +694,28 @@ function menuSong() {
 }
 
 // ===================================================================
-//  ゲーム中：エレクトロ・ダンス（A マイナー / 150 BPM / 32小節）
+//  ゲーム中：エレクトロ・ダンス（A マイナー / 160 BPM / 32小節）
+//  A：ドラム・ベース・刻み・アルペジオ → B：メロディ・パッド・スタブ → C：展開して盛り上げ → D：全部のせ
 // ===================================================================
 function gameSong() {
-  const s = new Song('game', { bpm: 150, bars: 32, target: -14.5, masterDrive: 1.3 });
+  const s = new Song('game', { bpm: 160, bars: 32, target: -13.2, masterDrive: 1.7 });
   s.bus('kick', { gain: 1 });
-  s.bus('drums', { gain: 1, rev: 0.05 });
-  s.bus('bass', { gain: 1, duckAmt: 0.55 });
-  s.bus('arp', { gain: 1, duckAmt: 0.3, dly: 0.22, rev: 0.1, hp: 250 });
-  s.bus('pad', { gain: 1, duckAmt: 0.75, rev: 0.2, hp: 200 });
-  s.bus('lead', { gain: 1, rev: 0.14, dly: 0.14 });
+  s.bus('drums', { gain: 1, rev: 0.05, drive: 1.2 });
+  s.bus('bass', { gain: 1, duckAmt: 0.6, drive: 1.4 });
+  s.bus('gtr', { gain: 1, duckAmt: 0.35, lp: 4200, hp: 110 });
+  s.bus('arp', { gain: 1, duckAmt: 0.35, dly: 0.2, rev: 0.1, hp: 300 });
+  s.bus('stab', { gain: 1, duckAmt: 0.5, rev: 0.12, hp: 300 });
+  s.bus('pad', { gain: 1, duckAmt: 0.8, rev: 0.18, hp: 250 });
+  s.bus('lead', { gain: 1, rev: 0.14, dly: 0.15 });
   s.bus('fx', { gain: 1, rev: 0.3 });
-  s.delay = { beats: 0.75, fb: 0.3, lp: 5000 };
+  s.delay = { beats: 0.75, fb: 0.32, lp: 5000 };
   s.reverb = { room: 0.8, damp: 0.3 };
 
   const loopChords = ['Am', 'F', 'C', 'G', 'Am', 'F', 'C', 'G'];
   const chords = [...loopChords, ...loopChords, 'Dm', 'Em', 'F', 'G', 'Dm', 'Em', 'F', 'E', ...loopChords];
   const section = (b) => (b < 8 ? 'A' : b < 16 ? 'B' : b < 24 ? 'C' : 'D');
-  const build = (b) => b === 22 || b === 23;
+  const BUILD = [22, 23];
+  const fillBar = (b) => b === 7 || b === 15 || b === 31;
 
   const melody = [
     'A5 . . E5 A5 . C6 .', 'C6 . A5 . F5 . A5 C6', 'G5 . . E5 G5 . C6 .', 'B5 . A5 . G5 . D5 .',
@@ -691,77 +725,110 @@ function gameSong() {
     'F5 . . . A5 . . .', 'G5 . . . B5 . . .', 'A5 . . . C6 . . .', 'B5 . . . D6 . . .',
     'D6 . . . C6 . A5 .', 'B5 . . . G5 . E5 .', 'A5 . . . . . . .', 'G#5 . . . B5 . . .',
   ];
-  const lead = { wave: 'saw', unison: 2, detune: 9, vel: 0.17, a: 0.005, d: 0.2, s: 0.75, r: 0.05, vib: 0.18, vibRate: 5.5, vibDelay: 0.18, filter: { cutoff: 2600, env: 1.2, decay: 0.15 } };
+  const lead = { wave: 'saw', unison: 3, detune: 12, vel: 0.18, a: 0.004, d: 0.2, s: 0.8, r: 0.05, vib: 0.18, vibRate: 5.5, vibDelay: 0.16, filter: { cutoff: 3200, env: 1.2, decay: 0.15 } };
+  const bassSaw = { wave: 'saw', unison: 2, detune: 14, vel: 0.36, a: 0.002, d: 0.07, s: 0.5, r: 0.03, filter: { cutoff: 360, env: 6, decay: 0.07, q: 1.4 }, drive: 2.2 };
+  const bassSub = { wave: 'sine', vel: 0.32, a: 0.002, d: 1, s: 1, r: 0.03 };
 
   chords.forEach((name, b) => {
     const B = b * 4, sec = section(b);
     const tones = CHORD[name];
-    const root = 33 + ((rootOf(name) - 9 + 12) % 12); // A1 から上に
-    // ベース：16分で転がす（キックの位置はあける）
-    if (!(b === 23)) {
-      for (let k = 0; k < 4; k++) {
-        [[0.25, 0], [0.5, 12], [0.75, 0]].forEach(([o, iv]) => {
-          s.note('bass', B + k + o, 0.2, root + iv, { wave: 'saw', vel: 0.36, a: 0.002, d: 0.08, s: 0.55, r: 0.03, filter: { cutoff: 260, env: 5, decay: 0.06, q: 1.1 }, drive: 1.5 });
-          s.note('bass', B + k + o, 0.2, root + iv, { wave: 'sine', vel: 0.3, a: 0.002, d: 1, s: 1, r: 0.03 });
-        });
+    const root = 33 + ((rootOf(name) - 9 + 12) % 12); // A1 から上
+    const lastBuild = b === BUILD[1];
+
+    // ベース：A/B は頭をあけて転がす、C/D は16分で押しっぱなし（キックで息をする）
+    const bassPat = sec === 'A' || sec === 'B' ? [[0.25, 0], [0.5, 12], [0.75, 0]] : [[0, 0], [0.25, 0], [0.5, 12], [0.75, 0]];
+    for (let k = 0; k < (lastBuild ? 2 : 4); k++) {
+      for (const [o, iv] of bassPat) {
+        s.note('bass', B + k + o, 0.2, root + iv, bassSaw);
+        s.note('bass', B + k + o, 0.2, root + iv, bassSub);
       }
-    } else {
-      [[0.25, 0], [0.5, 12], [0.75, 0], [1.25, 0], [1.5, 12], [1.75, 0]].forEach(([o, iv]) =>
-        s.note('bass', B + o, 0.2, root + iv, { wave: 'saw', vel: 0.36, a: 0.002, d: 0.08, s: 0.55, r: 0.03, filter: { cutoff: 260, env: 5, decay: 0.06, q: 1.1 }, drive: 1.5 }));
     }
+
+    // ひずんだ刻み（パワーコードのブリッジミュート）。C はのばして壮大に
+    const gRoot = 40 + ((rootOf(name) - 4 + 12) % 12); // E2 から上
+    const power = [gRoot, gRoot + 7, gRoot + 12];
+    const gtr = { wave: 'saw', unison: 2, detune: 8, a: 0.002, r: 0.04, drive: 6, filter: { cutoff: 2600 } };
+    if (sec === 'C' && !BUILD.includes(b)) {
+      power.forEach((m, i) => s.note('gtr', B, 4, m, { ...gtr, vel: 0.075, d: 1.5, s: 0.8, pan: [-0.6, 0.6, 0][i] }));
+    } else if (!BUILD.includes(b)) {
+      for (let k = 0; k < 8; k++) {
+        const accent = k === 0 || k === 3 || k === 6;
+        power.forEach((m, i) => s.note('gtr', B + k * 0.5, accent ? 0.4 : 0.22, m, { ...gtr, vel: (accent ? 0.075 : 0.05) * (sec === 'A' ? 0.8 : 1), d: 0.06, s: 0.25, pan: [-0.6, 0.6, 0][i] }));
+      }
+    }
+
     // ピコピコのアルペジオ（16分）
     const arpTones = [...tones.map((x) => 60 + x), 72 + tones[0]];
-    const order = [0, 1, 2, 3, 1, 2, 3, 2];
+    const order = sec === 'D' ? [0, 1, 2, 3, 2, 3, 1, 3] : [0, 1, 2, 3, 1, 2, 3, 2];
     for (let k = 0; k < 16; k++) {
-      if (build(b) && k >= 8 && b === 23) break;
-      s.note('arp', B + k * 0.25, 0.22, arpTones[order[k % 8]], { wave: 'pulse', duty: 0.3, vel: sec === 'A' ? 0.13 : 0.1, a: 0.001, d: 0.09, s: 0.15, r: 0.04, filter: { cutoff: 1400, env: 2.5, decay: 0.07 }, pan: k % 2 ? 0.35 : -0.35 });
+      if (lastBuild && k >= 8) break;
+      s.note('arp', B + k * 0.25, 0.22, arpTones[order[k % 8]], { wave: 'pulse', duty: 0.3, vel: sec === 'A' ? 0.13 : 0.1, a: 0.001, d: 0.09, s: 0.15, r: 0.04, filter: { cutoff: 1800, env: 2.5, decay: 0.07 }, pan: k % 2 ? 0.4 : -0.4 });
     }
+
+    // うら拍のシンセ・スタブ（B と D）
+    if (sec === 'B' || sec === 'D') {
+      for (let k = 0; k < 4; k++) {
+        tones.forEach((x, i) => s.note('stab', B + k + 0.5, 0.2, 72 + x, { wave: 'saw', unison: 5, detune: 20, vel: 0.05, a: 0.002, d: 0.08, s: 0.3, r: 0.05, filter: { cutoff: 4500, env: 1, decay: 0.05 }, pan: [-0.4, 0.4, 0][i] }));
+      }
+    }
+
     // パッド（キックで息をする）
     if (sec !== 'A') {
-      tones.forEach((x, i) => s.note('pad', B, 4, 60 + x - (i === 0 ? 12 : 0), { wave: 'saw', unison: 5, detune: 18, vel: 0.07, a: 0.03, d: 1, s: 0.9, r: 0.2, filter: { cutoff: 3000 }, pan: [-0.5, 0, 0.5][i % 3] }));
+      tones.forEach((x, i) => s.note('pad', B, 4, 60 + x - (i === 0 ? 12 : 0), { wave: 'saw', unison: 5, detune: 18, vel: sec === 'C' ? 0.08 : 0.065, a: 0.03, d: 1, s: 0.9, r: 0.2, filter: { cutoff: 3200 }, pan: [-0.5, 0, 0.5][i % 3] }));
     }
   });
 
   // リード
-  const putLead = (lines, fromBar, opts) => lines.forEach((bar, i) => {
-    for (const n of seq(bar, 0.5, (fromBar + i) * 4)) s.note('lead', n.beat, n.len, n.note, opts);
+  const putLead = (lines, fromBar, opts, shift = 0) => lines.forEach((bar, i) => {
+    for (const n of seq(bar, 0.5, (fromBar + i) * 4)) s.note('lead', n.beat, n.len, n.note + shift, opts);
   });
   putLead(melody, 8, lead);
-  putLead(melodyC, 16, { ...lead, vel: 0.15, filter: { cutoff: 2000, env: 0.6, decay: 0.3 } });
-  putLead(melody, 24, lead);
-  melody.forEach((bar, i) => {
-    for (const n of seq(bar, 0.5, (24 + i) * 4)) s.note('lead', n.beat, n.len, n.note - 12, { ...lead, wave: 'pulse', duty: 0.5, unison: 1, vel: 0.07, vib: 0, pan: -0.3 });
-  });
+  putLead(melodyC, 16, { ...lead, vel: 0.16, filter: { cutoff: 2400, env: 0.6, decay: 0.3 } });
+  putLead(melody, 24, { ...lead, unison: 5, detune: 18, vel: 0.19, filter: { cutoff: 4200, env: 1, decay: 0.15 } });
+  putLead(melody, 24, { ...lead, wave: 'pulse', duty: 0.5, unison: 1, vel: 0.06, vib: 0, pan: 0.3 }, 12);
 
   // ドラム
   for (let b = 0; b < 32; b++) {
     const B = b * 4, sec = section(b);
-    const kickBeats = b === 23 ? [0, 1] : [0, 1, 2, 3];
-    kickBeats.forEach((k) => s.play('kick', B + k, kick, { vel: 0.95, f0: 170, f1: 50, decay: 0.26, click: 0.35 }));
-    if (build(b)) {
-      const step = b === 22 ? 0.5 : 0.25;
-      for (let k = 0; k < 4; k += step) {
-        const prog = (b - 22 + k / 4) / 2;
-        s.play('drums', B + k, snare, { vel: 0.18 + prog * 0.4, tone: 200, noiseDecay: 0.09, hp: 1200 });
+    const kickBeats = b === BUILD[1] ? [0, 1] : [0, 1, 2, 3];
+    kickBeats.forEach((k) => s.play('kick', B + k, kick, { vel: 1, f0: 210, f1: 52, decay: 0.24, click: 0.5, drive: 2.2 }));
+
+    if (BUILD.includes(b)) {
+      // スネアロール：8分 → 16分 → 32分
+      const hits = [];
+      if (b === BUILD[0]) for (let k = 0; k < 4; k += 0.5) hits.push(k);
+      else {
+        for (let k = 0; k < 2; k += 0.25) hits.push(k);
+        for (let k = 2; k < 4; k += 0.125) hits.push(k);
+      }
+      for (const k of hits) {
+        const prog = (b - BUILD[0] + k / 4) / 2;
+        s.play('drums', B + k, snare, { vel: 0.15 + prog * 0.5, tone: 200 + prog * 80, noiseDecay: 0.08, hp: 1200 });
       }
     } else {
-      [1, 3].forEach((k) => {
-        s.play('drums', B + k, snare, { vel: 0.4, tone: 200, noiseDecay: 0.12, hp: 1100 });
-        s.play('drums', B + k, clap, { vel: 0.35 });
+      const snares = fillBar(b) ? [1] : [1, 3];
+      snares.forEach((k) => {
+        s.play('drums', B + k, snare, { vel: 0.52, tone: 200, noiseDecay: 0.13, hp: 1000 });
+        s.play('drums', B + k, clap, { vel: 0.42 });
       });
+      // ゴーストノート（小さいスネアで細かく）
+      if (sec === 'C' || sec === 'D') [0.75, 2.25, 3.75].forEach((k) => s.play('drums', B + k, snare, { vel: 0.09, tone: 220, noiseDecay: 0.05, hp: 1500 }));
+      // タムのフィル
+      if (fillBar(b)) [220, 180, 145, 110].forEach((f, i) => s.play('drums', B + 3 + i * 0.25, tom, { vel: 0.55, f, pan: 0.5 - i * 0.33 }));
     }
-    for (let k = 0; k < 4; k++) {
-      if (sec === 'A') s.play('drums', B + k + 0.5, hat, { vel: 0.12, decay: 0.035, pan: 0.2 });
-      else s.play('drums', B + k + 0.5, hat, { vel: 0.13, decay: 0.12, len: 0.3, pan: 0.2 });
-    }
+    // ハイハット：うら拍のオープン、D は16分のクローズも
+    for (let k = 0; k < 4; k++) s.play('drums', B + k + 0.5, hat, { vel: 0.15, decay: 0.12, len: 0.3, pan: 0.2 });
+    if (sec === 'D') for (let k = 0.25; k < 4; k += 0.5) s.play('drums', B + k, hat, { vel: 0.07, decay: 0.025, pan: 0.35 });
     // ノイズのシェイカー（16分）
     for (let k = 0; k < 4; k += 0.25) {
       const pos = Math.round((k % 1) * 4);
-      s.play('drums', B + k, shaker, { vel: [0.05, 0.035, 0.06, 0.04][pos] * (sec === 'A' ? 0.8 : 1.1), center: 8500, decay: 0.03, pan: -0.3 });
+      s.play('drums', B + k, shaker, { vel: [0.06, 0.04, 0.07, 0.045][pos] * (sec === 'A' ? 1 : 1.25), center: 8500, decay: 0.03, pan: -0.3 });
     }
-    if (b % 8 === 0) s.play('fx', B, crash, { vel: 0.22 });
+    // シンバル：B と D は4小節ごと、それ以外はセクションの頭
+    if (((sec === 'B' || sec === 'D') && b % 4 === 0) || b % 8 === 0) s.play('fx', B, crash, { vel: 0.24 });
+    if (b === 8 || b === 24) s.play('kick', B, boom, { vel: 0.55 });
   }
-  s.play('fx', 22 * 4, riser, { vel: 0.12 }, 8);
+  s.play('fx', BUILD[0] * 4, riser, { vel: 0.16 }, 8);
   return s;
 }
 

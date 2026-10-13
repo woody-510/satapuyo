@@ -50,7 +50,7 @@ window.GAME_CONFIG = {
   sounds: {
     bgmTitle: { src: 'assets/sound/bgm_title.mp3', loopStart: 0.1, loopEnd: 27.53 }, // タイトル：テーマソング
     bgmMenu: { src: 'assets/sound/bgm_menu.mp3', loopStart: 0.1, loopEnd: 48.1 },    // メニュー：落ちついた曲
-    bgmGame: { src: 'assets/sound/bgm_game.mp3', loopStart: 0.1, loopEnd: 51.3 },    // ゲーム中：ちょい激しい曲
+    bgmGame: { src: 'assets/sound/bgm_game.mp3', loopStart: 0.1, loopEnd: 48.1 },    // ゲーム中：激しめの曲
     move: null,
     rotate: null,
     land: null,
