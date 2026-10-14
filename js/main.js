@@ -136,14 +136,17 @@
     if (el) el.focus({ preventScroll: true });
   }
 
+  // 音が鳴るようになるまで、タップ・クリック・キーのたびに起こしにいく
+  const GESTURES = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
   function unlockAudio() {
-    if (audioReady) return;
-    audioReady = true;
-    Sound.unlock();
-    Sound.playBgm(bgmFor(screen));
+    const running = Sound.unlock();
+    if (!audioReady) {
+      audioReady = true;
+      Sound.playBgm(bgmFor(screen));
+    }
+    if (running) GESTURES.forEach((ev) => window.removeEventListener(ev, unlockAudio, true));
   }
-  window.addEventListener('pointerdown', unlockAudio, { once: false });
-  window.addEventListener('keydown', unlockAudio, { once: false });
+  GESTURES.forEach((ev) => window.addEventListener(ev, unlockAudio, true));
 
   document.addEventListener('click', (e) => {
     const go = e.target.closest('[data-go]');

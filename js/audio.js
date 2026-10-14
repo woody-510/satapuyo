@@ -15,6 +15,10 @@ const Sound = (() => {
     if (ctx) return;
     const AC = window.AudioContext || window.webkitAudioContext;
     if (!AC) return;
+    // iPhone のマナーモードでも鳴るように（Safari 16.4 以降）
+    try {
+      if (navigator.audioSession) navigator.audioSession.type = 'playback';
+    } catch {}
     ctx = new AC();
     master = ctx.createGain();
     master.gain.value = state.volume;
@@ -53,10 +57,20 @@ const Sound = (() => {
     return loads[key];
   }
 
-  // ブラウザは操作があるまで音を出せないので、最初のクリック/キーで起こす
+  // ブラウザは操作があるまで音を出せない。スマホはタッチの「押した瞬間」では許可されず
+  // 「離したとき」に許可されるので、鳴るようになるまで操作のたびに呼ぶ。鳴っていれば true
   function unlock() {
     init();
-    if (ctx && ctx.state === 'suspended') ctx.resume();
+    if (!ctx) return false;
+    if (ctx.state !== 'running') {
+      ctx.resume().catch(() => {});
+      // 古い iPhone は無音を1回鳴らすと起きる
+      const s = ctx.createBufferSource();
+      s.buffer = ctx.createBuffer(1, 1, ctx.sampleRate);
+      s.connect(ctx.destination);
+      s.start(0);
+    }
+    return ctx.state === 'running';
   }
 
   function tone(freq, dur, { type = 'square', vol = 0.15, slide = null, delay = 0, out = null } = {}) {
