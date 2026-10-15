@@ -91,20 +91,31 @@ const Ending = (() => {
     const items = [];
     let y = 0;
     const font = (size, weight = 800) => `${weight} ${size}px 'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', 'Yu Gothic', sans-serif`;
-    // 幅に合わせて折り返す（文中の改行でも改行できる）
+    // 幅に合わせて折り返す（文中の改行でも改行できる）。
+    // 「だ。」だけが次の行に落ちないよう、行の長さがそろう幅で折り返しなおす
     const wrap = (text, size, width, weight) => {
       g.font = font(size, weight);
-      const lines = [];
-      for (const para of text.split('\n')) {
+      const greedy = (para, w) => {
+        const out = [];
         let line = '';
         for (const ch of para) {
-          if (g.measureText(line + ch).width > width && line) {
+          if (g.measureText(line + ch).width > w && line) {
             if ('、。」』）！？…ー'.includes(ch)) { line += ch; continue; }
-            lines.push(line);
+            out.push(line);
             line = ch;
           } else line += ch;
         }
-        if (line) lines.push(line);
+        if (line) out.push(line);
+        return out;
+      };
+      const lines = [];
+      for (const para of text.split('\n')) {
+        let out = greedy(para, width);
+        if (out.length > 1) {
+          const even = greedy(para, Math.min(width, (g.measureText(para).width / out.length) * 1.08));
+          if (even.length === out.length) out = even;
+        }
+        lines.push(...out);
       }
       return lines;
     };

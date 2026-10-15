@@ -22,20 +22,26 @@
       const q = new URLSearchParams(location.search);
       const W = +q.get('w') || 1920, H = +q.get('h') || 1080, FPS = +q.get('fps') || 30, DUR = +q.get('dur') || 215;
       const send = (path, body) => fetch(path, { method: 'POST', body });
+      const log = (msg) => send('/log', msg);
+      const within = (p, ms) => Promise.race([p, new Promise((ok) => setTimeout(ok, ms))]);
       try {
         const CFG = window.GAME_CONFIG;
         const fixed = (p) => '../../' + p;
         const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(i); i.src = fixed(src); });
-        for (const w of [500, 800, 900]) await document.fonts.load(`${w} 40px 'M PLUS Rounded 1c'`, 'さたぷよ100万点');
-        await document.fonts.ready;
+        await log('ページを開きました');
+        // フォントを読む（ネットが遅いときは 15 秒であきらめて、ほかのフォントで描く）
+        await within(Promise.all([500, 800, 900].map((w) => document.fonts.load(`${w} 40px 'M PLUS Rounded 1c'`, 'さたぷよ100万点'))), 15000);
+        await within(document.fonts.ready, 5000);
+        await log('フォント：' + (document.fonts.check("800 40px 'M PLUS Rounded 1c'") ? 'OK' : '読めなかった'));
         const faces = await Promise.all(CFG.faces.map((f) => load(f.src)));
         const logo = await load(CFG.images.logo);
+        await log('画像：' + faces.filter((i) => i.naturalWidth).length + '/' + faces.length);
         const scene = Ending.makeScene(faces, DUR);
         scene.logo = logo;
         const canvas = document.getElementById('c');
         canvas.width = W;
         canvas.height = H;
-        const frames = Math.round((DUR + scene.tail) * FPS); // 曲のあとの tail（最後のボイス）まで
+        const frames = Math.min(+q.get('max') || Infinity, Math.round((DUR + scene.tail) * FPS)); // 曲のあとの tail（最後のボイス）まで
         for (let i = 0; i < frames; i++) {
           Ending.renderFrame(scene, canvas, i / FPS);
           const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', 0.93));

@@ -90,11 +90,11 @@ window.GAME_CONFIG = {
       { role: 'コード進行', names: ['Woody Wasei Chords'] },
       { role: '音色', names: ['Woody Katachi Synth'] },
       { role: '仕上げの EQ', names: ['Woody Giongo EQ'] },
-      { role: 'エンディングテーマ', names: ['テーマ7（J-POP）'] },
+      { role: 'エンディングテーマ', names: ['「100万点の空」'] },
     ],
     thanks: [{ role: 'Special Thanks', names: ['遊んでくれたあなた'] }],
     // さいごに主演からひとこと（face は faces の何番目か。1 から）
-    lastWords: { face: 11, text: '100万点おめでとう。\n……そんなに、おれの顔消すの楽しかった？\nまた来いよ。', by: 'さたろう' },
+    lastWords: { face: 11, text: '100万点おめでとう。\nおれの顔をここまで消したのは、お前が初めてだ。\n……二度と来んな。', by: 'さたろう' },
     finale: 'THANK YOU FOR PLAYING',
     endVoice: 'chain', // 最後に鳴らすボイス（voices の名前。again）
     endVoiceAt: -3.2, // ボイスを鳴らす時刻（曲のファイルの終わりから何秒ずらすか。曲の最後の音が消えた直後）

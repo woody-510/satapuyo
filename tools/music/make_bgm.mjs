@@ -632,13 +632,13 @@ function jpopSong() {
 // ---------------- 書き出し ----------------
 // name: ゲームで使うときのファイル名（bgm_<name>.mp3。null ならゲームでは使わない）、archive: 保存用の名前
 const SONGS = {
-  title: { make: titleSong, game: 'title', archive: 'テーマ1 タイトル（8bit）', bpm: 150, note: 'ループ' },
-  menu: { make: menuSong, game: 'menu', archive: 'テーマ2 メニュー（ローファイ）', bpm: 80, note: 'ループ' },
-  game: { make: gameSong, game: 'game', archive: 'テーマ3 バトル（激しめ）', bpm: 160, note: 'ループ' },
-  citypop: { make: cityPopSong, game: null, archive: 'テーマ4 シティポップ', bpm: 120, note: 'ループ' },
-  boss: { make: bossSong, game: null, archive: 'テーマ5 ボス戦（8bit×メタル）', bpm: 180, note: 'ループ' },
-  town: { make: townSong, game: null, archive: 'テーマ6 町（8bit）', bpm: 120, note: 'ループ' },
-  jpop: { make: jpopSong, game: 'ending', archive: 'テーマ7 エンディング（J-POP）', bpm: 160, note: 'フル尺（ループなし）' },
+  title: { make: titleSong, game: 'title', archive: 'テーマ1 はじまりのピコピコ（タイトル・8bit）', bpm: 150, note: 'ループ' },
+  menu: { make: menuSong, game: 'menu', archive: 'テーマ2 午後3時のローファイ（メニュー）', bpm: 80, note: 'ループ' },
+  game: { make: gameSong, game: 'game', archive: 'テーマ3 連鎖ラッシュ（バトル・激しめ）', bpm: 160, note: 'ループ' },
+  citypop: { make: cityPopSong, game: null, archive: 'テーマ4 ミッドナイト・モール（シティポップ）', bpm: 120, note: 'ループ' },
+  boss: { make: bossSong, game: null, archive: 'テーマ5 ロッカー0004の逆襲（ボス戦・8bit×メタル）', bpm: 180, note: 'ループ' },
+  town: { make: townSong, game: null, archive: 'テーマ6 ぽかぽか商店街（町・8bit）', bpm: 120, note: 'ループ' },
+  jpop: { make: jpopSong, game: 'ending', archive: 'テーマ7 100万点の空（エンディング・J-POP）', bpm: 160, note: 'フル尺（ループなし）' },
 };
 for (const [name, exe] of Object.entries(TOOL)) {
   if (!fs.existsSync(exe)) {

@@ -16,7 +16,7 @@ import vm from 'node:vm';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PLUGINS = process.env.WOODY_PLUGINS || path.join(os.homedir(), 'Desktop', 'VSTプラグイン');
-const NAME = 'テーマ7 エンディング（J-POP）';
+const NAME = 'テーマ7 100万点の空（エンディング・J-POP）';
 const OUT_DIRS = [path.join(ROOT, 'music'), path.join(PLUGINS, 'BGM')];
 const W = 1920, H = 1080, FPS = 30;
 const EDGE = [
@@ -42,7 +42,7 @@ const CFG = sandbox.window.GAME_CONFIG;
 const tail = (CFG.ending && CFG.ending.tail) || 0;
 const voiceKey = CFG.ending && CFG.ending.endVoice;
 const voice = voiceKey && CFG.voices && CFG.voices[voiceKey] ? path.join(ROOT, CFG.voices[voiceKey]) : null;
-const total = duration + tail;
+const total = process.env.TEST_SECONDS ? +process.env.TEST_SECONDS : duration + tail; // TEST_SECONDS は確認用
 const frames = Math.round(total * FPS);
 for (const d of OUT_DIRS) fs.mkdirSync(d, { recursive: true });
 const out = path.join(OUT_DIRS[0], `${NAME}エンドロール.mp4`);
@@ -95,6 +95,7 @@ const server = http.createServer((req, res) => {
         return;
       }
       res.end('ok');
+      if (url.pathname === '/log') console.log('  [ページ] ' + body.toString());
       if (url.pathname === '/done') finish(0, '\n  コマを描き終わりました。動画にまとめています…');
       if (url.pathname === '/error') finish(1, '\nページでエラー: ' + body.toString());
     });
@@ -112,7 +113,7 @@ const server = http.createServer((req, res) => {
 server.listen(0, '127.0.0.1', () => {
   const port = server.address().port;
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'satapuyo_edge_'));
-  const page = `http://127.0.0.1:${port}/tools/video/ending_video.html?w=${W}&h=${H}&fps=${FPS}&dur=${duration}`;
+  const page = `http://127.0.0.1:${port}/tools/video/ending_video.html?w=${W}&h=${H}&fps=${FPS}&dur=${duration}&max=${frames}`;
   edge = spawn(EDGE, [
     '--headless=new', '--disable-gpu', '--no-first-run', '--hide-scrollbars', '--mute-audio',
     `--user-data-dir=${profile}`, `--window-size=${W},${H}`, page,
