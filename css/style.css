@@ -605,3 +605,22 @@ kbd {
 .big-link:active { transform: translateY(5px); box-shadow: none; }
 .big-link-title { font-size: 19px; font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2); }
 .big-link-sub { font-size: 12px; font-weight: 500; opacity: 0.95; }
+
+/* ---------- エンディング ---------- */
+#screen-ending { padding: 0; background: #000; overflow: hidden; }
+#screen-ending.active { display: block; animation: none; }
+#ending-canvas { position: absolute; inset: 0; display: block; }
+.ending-skip {
+  position: absolute;
+  top: calc(12px + env(safe-area-inset-top));
+  right: 12px;
+  padding: 8px 16px;
+  border: 2px solid rgba(255, 255, 255, 0.7);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  opacity: 0.75;
+}
+.ending-skip:hover, .ending-skip:focus-visible { opacity: 1; outline: none; }

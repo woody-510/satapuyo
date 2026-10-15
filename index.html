@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=7">
+  <link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
   <div id="bg" aria-hidden="true">
@@ -54,6 +54,10 @@
         <button class="menu-btn c7" data-go="credits">
           <span class="menu-title">♪ おんがく</span>
           <span class="menu-sub">BGM を作ったプラグインと YouTube</span>
+        </button>
+        <button class="menu-btn c4" id="btn-ending" hidden>
+          <span class="menu-title">★ エンディング</span>
+          <span class="menu-sub">100万点の、その先で見たもの</span>
         </button>
       </div>
       <button class="link-btn" data-go="title">タイトルへもどる</button>
@@ -212,6 +216,12 @@
     </div>
   </section>
 
+  <!-- エンディング（エンドロール） -->
+  <section class="screen" id="screen-ending">
+    <canvas id="ending-canvas"></canvas>
+    <button class="ending-skip" id="btn-ending-skip">スキップ ▶▶</button>
+  </section>
+
   <!-- おんがく（クレジット） -->
   <section class="screen" id="screen-credits" data-back="menu">
     <div class="panel wide-panel credits">
@@ -230,6 +240,7 @@
       <p>おなじ <b>さたろう</b>（おなじ わくの色）を <b>4つ以上</b> くっつけると きえる！<br>
         きえたあとに おちてきたぷよが また4つそろうと <b>れんさ</b>。れんさが多いほど 点数がドカンとふえる。</p>
       <p>左から3れつめの いちばん上（<span class="x-mark">✕</span>じるし）まで つみあがったら ゲームオーバー。</p>
+      <p>とことんモードで <b>100万点</b> 以上とって ゲームオーバーになると……？</p>
       <table class="keys">
         <tr><th>うごかす</th><td><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd></td></tr>
         <tr><th>はやく おとす</th><td><kbd>↓</kbd> / <kbd>S</kbd></td></tr>
@@ -253,9 +264,10 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=7"></script>
-  <script src="js/audio.js?v=7"></script>
-  <script src="js/game.js?v=7"></script>
-  <script src="js/main.js?v=7"></script>
+  <script src="js/config.js?v=13"></script>
+  <script src="js/audio.js?v=13"></script>
+  <script src="js/game.js?v=13"></script>
+  <script src="js/ending.js?v=13"></script>
+  <script src="js/main.js?v=13"></script>
 </body>
 </html>

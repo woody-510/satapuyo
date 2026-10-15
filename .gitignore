@@ -10,3 +10,6 @@ Thumbs.db
 
 # BGM 作成時の一時ファイル
 assets/sound/*.wav
+
+# 保存用の BGM（wav が大きいので GitHub には上げない）
+/music/

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>エンドロールの書き出し</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
+  <style>
+    html, body { margin: 0; background: #000; color: #fff; font-family: 'M PLUS Rounded 1c', sans-serif; }
+    canvas { display: block; width: 100vw; height: auto; }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+  <!-- tools/video/make_ending_video.mjs が開くページ。1コマずつ描いて送る -->
+  <script src="../../js/config.js"></script>
+  <script src="../../js/game.js"></script>
+  <script src="../../js/ending.js"></script>
+  <script>
+    (async () => {
+      const q = new URLSearchParams(location.search);
+      const W = +q.get('w') || 1920, H = +q.get('h') || 1080, FPS = +q.get('fps') || 30, DUR = +q.get('dur') || 215;
+      const send = (path, body) => fetch(path, { method: 'POST', body });
+      try {
+        const CFG = window.GAME_CONFIG;
+        const fixed = (p) => '../../' + p;
+        const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(i); i.src = fixed(src); });
+        for (const w of [500, 800, 900]) await document.fonts.load(`${w} 40px 'M PLUS Rounded 1c'`, 'さたぷよ100万点');
+        await document.fonts.ready;
+        const faces = await Promise.all(CFG.faces.map((f) => load(f.src)));
+        const logo = await load(CFG.images.logo);
+        const scene = Ending.makeScene(faces, DUR);
+        scene.logo = logo;
+        const canvas = document.getElementById('c');
+        canvas.width = W;
+        canvas.height = H;
+        const frames = Math.round((DUR + scene.tail) * FPS); // 曲のあとの tail（最後のボイス）まで
+        for (let i = 0; i < frames; i++) {
+          Ending.renderFrame(scene, canvas, i / FPS);
+          const blob = await new Promise((ok) => canvas.toBlob(ok, 'image/jpeg', 0.93));
+          await send('/frame', blob);
+        }
+        await send('/done', '');
+      } catch (e) {
+        await send('/error', String(e && e.stack || e));
+      }
+    })();
+  </script>
+</body>
+</html>

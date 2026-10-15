@@ -26,6 +26,7 @@
 - **ずかん** … 顔の一覧と「けした数」。タップで ON / OFF して、出てくる顔を選べる
 - **せってい** … ぷよの種類（3〜5）、スピード、落下ガイド、効果音、BGM、音量
 - **おんがく** … BGM を作ったプラグイン（BOOTH）と YouTube のリンク
+- **★ エンディング** … とことんモードで100万点以上とってゲームオーバーになると流れるエンドロール。一度見ると出てくる
 
 ## 手元で動かす
 
@@ -63,7 +64,7 @@ python -m http.server 8000
 
 ## BGM（Woody Class のプラグインで制作）
 
-3 曲とも、[Woody Class](https://www.youtube.com/@WoodyClass) の VST プラグインの音だけで作っている。
+ぜんぶ、[Woody Class](https://www.youtube.com/@WoodyClass) の VST プラグインの音だけで作っている。
 ゲームのメニューの「♪ おんがく」にも、使ったプラグインと YouTube のリンクを出している（中身は `js/config.js` の `credits`）。
 
 | プラグイン | 使ったところ |
@@ -73,22 +74,44 @@ python -m http.server 8000
 | [Woody Katachi Synth](https://woodyclass.booth.pm/items/8914910)（無料） | 和音・ベース・メロディの音色（チップチューン矩形リード・8bit ベース・ローファイ・プラック・Supersaw・Reese Bass など） |
 | [Woody Giongo EQ](https://woodyclass.booth.pm/items/8919240) | 仕上げの EQ（明るいポップ・ローファイ・EDM、ドラムにポップ・メタル） |
 
-| 曲 | 中身 | テンポ / 長さ |
-| --- | --- | --- |
-| タイトル（テーマソング） | 8bit。カノン進行 → 王道進行 → ♭VI–♭VII–I、チップチューンのメロディ | 150 BPM / 16小節（25.6秒） |
-| メニュー（落ちついた曲） | ローファイ。テンション付き 2516、後半はシェイカーとプラックのメロディ | 80 BPM / 16小節（48秒） |
-| ゲーム中（激しめ） | 4つ打ち → 2ビート＋ツーバス → メロスピ → ブレイク → 全部のせ | 160 BPM / 32小節（48秒） |
+| 曲 | 中身 | テンポ / 長さ | ゲームで |
+| --- | --- | --- | --- |
+| テーマ1 タイトル（8bit） | カノン進行 → 王道進行 → ♭VI–♭VII–I、チップチューンのメロディ | 150 BPM / 16小節（25.6秒）ループ | タイトル |
+| テーマ2 メニュー（ローファイ） | テンション付き 2516、後半はシェイカーとプラックのメロディ | 80 BPM / 16小節（48秒）ループ | メニュー |
+| テーマ3 バトル（激しめ） | 4つ打ち → 2ビート＋ツーバス → メロスピ → ブレイク → 全部のせ | 160 BPM / 32小節（48秒）ループ | ゲーム中 |
+| テーマ4 シティポップ | 丸サ進行 → 3625、16ビート、三角波のメロディとカッティング | 120 BPM / 16小節（32秒）ループ | （まだ使っていない） |
+| テーマ5 ボス戦（8bit×メタル） | アンダルシア進行 → ナポリの六の和音、ツーバス・ギャロップ・3・3・2 のキメ | 180 BPM / 32小節（42.7秒）ループ | （まだ使っていない） |
+| テーマ6 町（8bit） | C F C G のほのぼの進行、ブーム・チック | 120 BPM / 16小節（32秒）ループ | （まだ使っていない） |
+| テーマ7 エンディング（J-POP） | 頭サビ → 8bit イントロ → A → B → サビ → 間奏 → A → B → サビ → 8bit ソロ → Cメロ → 落ちサビ → 半音上げのラスサビ → アウトロ | 160 BPM / 140小節（3分35秒） | エンディング |
 
-どれもつなぎ目なしでループする。作り直すときは（Node.js・ffmpeg と、Woody Class のプラグインのツールが必要）:
+ループ曲はつなぎ目なしでループする。作り直すときは（Node.js・ffmpeg と、Woody Class のプラグインのツールが必要）:
 
 ```bash
 node tools/music/make_bgm.mjs
 ```
 
-ツール（TsuzumiTool・WaonTool・KatachiTool・HibikiUiShots）は `%USERPROFILE%WoodyClassBuild…` から読む（別の場所なら環境変数 `WOODY_BUILD`）。
-メロディ・リズムの刻み方・使うグルーヴや進行は `tools/music/make_bgm.mjs` の中に書いてある。
-最後に表示されるループ位置（`loopStart` / `loopEnd`）を `js/config.js` の `sounds` に書く。
-自分で作った mp3 にするなら `bgmGame: 'assets/sound/my_song.mp3'` のようにファイル名だけ書けば、ファイル全体をループする。
+- ゲームで使う 4 曲は `assets/sound/bgm_*.mp3` に、保存用の「テーマ1〜7」は `music/` と `VSTプラグイン\BGM\` に（wav と試聴用 mp3。`music/` は GitHub に上げない）
+- ツール（TsuzumiTool・WaonTool・KatachiTool・HibikiUiShots）は `%USERPROFILE%\WoodyClassBuild\…` から読む（別の場所なら環境変数 `WOODY_BUILD`）
+- メロディ・リズムの刻み方・使うグルーヴや進行は `tools/music/make_bgm.mjs` の中に書いてある
+- 最後に表示されるループ位置（`loopStart` / `loopEnd`）を `js/config.js` の `sounds` に書く
+- 自分で作った mp3 にするなら `bgmGame: 'assets/sound/my_song.mp3'` のようにファイル名だけ書けば、ファイル全体をループする
+
+## エンディング
+
+とことんモードで **100万点以上** とってゲームオーバーになると、リザルトの前にエンドロールが流れる（曲はテーマ7）。
+一度見ると、メニューに「★ エンディング」が出て何度でも見られる。
+
+- 文字は下から上へ。うしろを飛行機・ジェット・ヘリ・気球・車・バス・ロケットに乗ったさたろうが左から右へ横切る。空は昼 → 夕方 → 夜
+- スタッフ、CAST（16人の顔・キャラ・ひとこと）、Special Thanks、主演のひとこと、THANK YOU FOR PLAYING の順。曲が終わったら again のボイス
+- 中身はぜんぶ `js/config.js`：CAST のキャラとひとことは `faces` の `role`・`comment`、ほかは `ending`（点数のしきい値・スタッフ・最後のひとことなど）
+
+エンドロールを動画（1920x1080・30fps の mp4）にするときは（Microsoft Edge と ffmpeg が必要）:
+
+```bash
+node tools/video/make_ending_video.mjs
+```
+
+→ `music/` と `VSTプラグイン\BGM\` に「テーマ7 エンディング（J-POP）エンドロール.mp4」ができる。
 
 ## ボイス
 
@@ -130,7 +153,8 @@ css/style.css     見た目
 js/config.js      画像・音・タイトルなどの設定
 js/audio.js       効果音とBGMの再生（ファイルがなければ内蔵音）
 js/game.js        ぷよぷよ本体（盤面・回転・連鎖・得点・描画）
+js/ending.js      エンディング（エンドロール）の絵
 js/main.js        画面遷移・入力・ランキング・ずかん・せってい
 assets/           画像
-tools/            画像作成スクリプト・BGM作成スクリプト（プラグインで鳴らす）
+tools/            画像作成・BGM作成（プラグインで鳴らす）・エンドロールの動画書き出し
 ```

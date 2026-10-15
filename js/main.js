@@ -112,7 +112,8 @@
   let screen = null;
   let audioReady = false;
   // 画面ごとの曲：タイトルはテーマソング、ゲーム中は激しめ、それ以外は落ちついた曲
-  const bgmFor = (name) => (name === 'title' ? 'title' : name === 'game' ? 'game' : 'menu');
+  // エンディングは自分で曲を鳴らすので null
+  const bgmFor = (name) => (name === 'title' ? 'title' : name === 'game' ? 'game' : name === 'ending' ? null : 'menu');
 
   function show(name) {
     screen = name;
@@ -125,7 +126,7 @@
     if (name === 'settings') renderSettings();
     if (name === 'credits') renderCredits();
     if (name === 'title') renderTitleFaces();
-    if (audioReady) Sound.playBgm(bgmFor(name));
+    if (audioReady && bgmFor(name)) Sound.playBgm(bgmFor(name));
     if (name !== 'game') stopLoop();
     focusFirst();
   }
@@ -143,7 +144,7 @@
     Sound.unlock();
     if (!audioReady) {
       audioReady = true;
-      Sound.playBgm(bgmFor(screen));
+      if (bgmFor(screen)) Sound.playBgm(bgmFor(screen));
     }
   }
   GESTURES.forEach((ev) => window.addEventListener(ev, unlockAudio, true));
@@ -205,7 +206,20 @@
   function refreshMenu() {
     $('#best-endless').textContent = (ranking.endless[0]?.score || 0).toLocaleString();
     $('#best-time').textContent = (ranking.time[0]?.score || 0).toLocaleString();
+    $('#btn-ending').hidden = !store.get('endingUnlocked', false);
   }
+
+  // ---------------- エンディング ----------------
+  const logoImg = Object.assign(new Image(), { src: CFG.images.logo });
+  function playEnding(onDone) {
+    show('ending');
+    Ending.play({ canvas: $('#ending-canvas'), faces: faceImgs, logo: logoImg, onDone });
+  }
+  $('#btn-ending').addEventListener('click', () => {
+    Sound.play('decide');
+    playEnding(() => show('menu'));
+  });
+  $('#btn-ending-skip').addEventListener('click', () => Ending.stop());
 
   // ---------------- ゲーム ----------------
   const canvas = $('#field');
@@ -244,7 +258,7 @@
       callbacks: {
         banner,
         chain: chainFx,
-        end: showResult,
+        end: finishGame,
         // 連鎖が終わったら「again」、ゲームが終わったら「are you」
         chainEnd: (n) => n >= (CFG.voiceChainMin || 2) && Sound.playVoice('chain'),
         over: () => Sound.playVoice('end'),
@@ -271,12 +285,19 @@
       game.render();
       updateHud();
       tickCutin(dt);
+      // エンディングが近づいたら、曲を前もって読んでおく
+      const min = CFG.ending && CFG.ending.minScore;
+      if (min && !endingPreloaded && game.mode === 'endless' && game.score >= min * 0.7) {
+        endingPreloaded = true;
+        Sound.preloadBgm('ending');
+      }
     };
     rafId = requestAnimationFrame(loop);
   }
 
   // ゲーム中にたまに「with y」のカットイン（ほかの声とは重ねない）
   let cutinTimer = 0;
+  let endingPreloaded = false;
   function nextCutin() {
     const [a, b] = CFG.voiceCutinSeconds || [25, 50];
     return a + Math.random() * (b - a);
@@ -398,6 +419,10 @@
   }
 
   window.addEventListener('keydown', (e) => {
+    if (screen === 'ending') {
+      if (e.code === 'Escape') Ending.stop();
+      return;
+    }
     const paused = !$('#pause-modal').hidden;
     if (screen === 'game' && game) {
       if (e.code === 'Escape' || e.code === 'KeyP') {
@@ -501,9 +526,20 @@
   let lastEntryId = null;
   const MODE_NAME = { endless: 'とことんモード', time: 'タイムアタック' };
 
-  function showResult(r) {
+  // ゲームが終わったら：とことんモードで規定の点数以上ならエンディング → リザルト
+  function finishGame(r) {
     const mode = game.mode;
     game = null;
+    const min = CFG.ending && CFG.ending.minScore;
+    if (mode === 'endless' && min && r.score >= min) {
+      store.set('endingUnlocked', true);
+      playEnding(() => showResult(r, mode));
+    } else {
+      showResult(r, mode);
+    }
+  }
+
+  function showResult(r, mode) {
     for (const [src, c] of Object.entries(r.popStats)) stats.pops[src] = (stats.pops[src] || 0) + c;
     store.set('stats', stats);
 
@@ -710,7 +746,7 @@
   $('#volume').addEventListener('change', () => Sound.play('decide'));
 
   // デバッグ用（ブラウザのコンソールから __satapuyo.game で中身を見られる）
-  window.__satapuyo = { get game() { return game; } };
+  window.__satapuyo = { get game() { return game; }, ending: () => playEnding(() => show('menu')) };
 
   show('title');
 })();

@@ -10,7 +10,7 @@ const Sound = (() => {
   let voiceGain = null;
   let voiceNow = null; // { src, end }
   const voiceLoads = {};
-  const BGM_KEY = { title: 'bgmTitle', menu: 'bgmMenu', game: 'bgmGame' };
+  const BGM_KEY = { title: 'bgmTitle', menu: 'bgmMenu', game: 'bgmGame', ending: 'bgmEnding' };
   const XF = 0.03; // ループのつなぎ目を重ねる秒数
   let bgm = null; // { name, key, stop() }
   // config では 'path.mp3' でも { src, loopStart, loopEnd } でもOK
@@ -219,13 +219,22 @@ const Sound = (() => {
     return () => clearInterval(timer);
   }
 
-  function playBgm(name, force = false) {
-    if (!ctx) return;
+  // hooks: { onStart(秒数 or null), onEnd() } … ループしない曲（エンディング）で使う。
+  //   鳴らせなかったとき（BGM OFF・読みこみ失敗）は onStart(null) だけ呼ぶ
+  function playBgm(name, force = false, hooks = {}) {
+    if (!ctx) {
+      if (hooks.onStart) hooks.onStart(null);
+      return;
+    }
     if (!force && bgm && bgm.name === name) return;
     stopBgm();
     const key = BGM_KEY[name];
-    const cur = (bgm = { name, key, dead: false, stop() { this.dead = true; } });
-    if (!state.bgm) return;
+    const cur = (bgm = { name, key, dead: false, hooks, stop() { this.dead = true; } });
+    const once = typeof cfg[key] === 'object' && cfg[key] && cfg[key].loop === false;
+    if (!state.bgm || (once && !srcOf(cfg[key]))) {
+      if (hooks.onStart) hooks.onStart(null);
+      return;
+    }
     if (!srcOf(cfg[key])) {
       cur.stop = startSynthBgm(SONGS[name] ? name : 'title');
       return;
@@ -233,10 +242,16 @@ const Sound = (() => {
     load(key).then((buf) => {
       if (cur.dead) return;
       if (buf) startBuffer(cur, buf, cfg[key]);
+      else if (once) hooks.onStart && hooks.onStart(null);
       else cur.stop = startSynthBgm(SONGS[name] ? name : 'title');
-      // ほかの曲も裏で読んでおく
-      Object.values(BGM_KEY).forEach((k) => load(k));
+      // ほかの曲も裏で読んでおく（エンディングは大きいので、近づいたときだけ）
+      Object.entries(BGM_KEY).forEach(([n, k]) => n !== 'ending' && load(k));
     });
+  }
+
+  // 前もって読んでおく（エンディングが近いときなど）
+  function preloadBgm(name) {
+    if (ctx && BGM_KEY[name]) load(BGM_KEY[name]);
   }
 
   // ファイルのBGMをループ再生。loopStart/loopEnd があれば、つなぎ目を少し重ねて
@@ -249,7 +264,19 @@ const Sound = (() => {
     out.gain.linearRampToValueAtTime(1, t0 + 0.6);
     const sources = new Set();
     const hasLoop = typeof val === 'object' && val.loopEnd > 0;
-    if (!hasLoop) {
+    if (typeof val === 'object' && val.loop === false) {
+      // ループしない曲：1回だけ鳴らして、終わったら知らせる
+      const s = ctx.createBufferSource();
+      s.buffer = buf;
+      s.connect(out);
+      s.start(t0);
+      s.onended = () => {
+        sources.delete(s);
+        if (!cur.dead && cur.hooks.onEnd) cur.hooks.onEnd();
+      };
+      sources.add(s);
+      if (cur.hooks.onStart) cur.hooks.onStart(buf.duration);
+    } else if (!hasLoop) {
       const s = ctx.createBufferSource();
       s.buffer = buf;
       s.loop = true;
@@ -357,5 +384,5 @@ const Sound = (() => {
     if (bgmChanged && bgm) playBgm(bgm.name, true);
   }
 
-  return { unlock, play, playBgm, stopBgm, apply, playVoice, hasVoice, voicePlaying };
+  return { unlock, play, playBgm, preloadBgm, stopBgm, apply, playVoice, hasVoice, voicePlaying };
 })();
