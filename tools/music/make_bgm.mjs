@@ -12,7 +12,7 @@
 //
 // 書き出す場所：
 //   ゲームで使う曲 … assets/sound/bgm_*.mp3
-//   保存用（テーマ1〜）… puyo/music/ と VSTプラグイン/BGM/ に「テーマN 名前.wav / .mp3」
+//   保存用（テーマ1〜）… puyo/music/ と VSTプラグイン/BGM/ の「ループ」「フル尺」フォルダに「テーマN 名前.wav / .mp3」
 //     ループ曲の wav はちょうど 1 ループ（そのままくり返せばつなぎ目なし）、mp3 は 2 回くり返してフェードアウトした試聴用
 //
 // 必要なもの: Node.js 18 以上 / ffmpeg / 上の 4 つの exe
@@ -630,6 +630,9 @@ function jpopSong() {
   return s.render({ eq: ['preset=brightpop'], target: -14 });
 }
 
+// 保存用フォルダの中の、ループ曲とフル尺の曲の置き場所
+const folderOf = (info) => (info.loop ? 'ループ' : 'フル尺');
+
 // 1小節ごとに 2 つの刻みを交互に使う（ボサノバなど、2 小節でひとまとまりのリズム用）
 function alternate(s, from, to, a, b, what, shift = 0) {
   const out = [];
@@ -883,7 +886,9 @@ for (const d of ARCHIVE_DIRS) fs.mkdirSync(d, { recursive: true });
 console.log('Woody Class のプラグインで BGM を作っています…');
 const loops = {};
 try {
-  for (const name of pick.length ? pick : Object.keys(SONGS)) {
+  // --list … 曲は作らず、保存用フォルダの一覧（00_曲の一覧.txt）だけ書きなおす
+  const onlyList = process.argv.includes('--list');
+  for (const name of onlyList ? [] : pick.length ? pick : Object.keys(SONGS)) {
     const info = SONGS[name];
     const t0 = Date.now();
     console.log(`  ${info.archive}`);
@@ -901,15 +906,20 @@ try {
     writeWav(wavPath, loop);
     writeWav(prevPath, preview);
     for (const d of info.where === 'vst' ? ARCHIVE_DIRS.slice(1) : ARCHIVE_DIRS) {
-      fs.copyFileSync(wavPath, path.join(d, `${info.archive}.wav`));
-      mp3(prevPath, path.join(d, `${info.archive}.mp3`), 192);
+      const sub = path.join(d, folderOf(info)); // 「ループ」か「フル尺」のフォルダへ
+      fs.mkdirSync(sub, { recursive: true });
+      fs.copyFileSync(wavPath, path.join(sub, `${info.archive}.wav`));
+      mp3(prevPath, path.join(sub, `${info.archive}.mp3`), 192);
     }
     console.log(`    → ${(loop.length / 2 / SR).toFixed(1)} 秒（${((Date.now() - t0) / 1000).toFixed(0)} 秒で作成）`);
   }
   // 保存用フォルダに一覧を書く（そのフォルダにある曲だけ。長さは wav から測る）
   const seconds = (f) => +execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString().trim();
   for (const d of ARCHIVE_DIRS) {
-    const here = Object.values(SONGS).filter((i) => fs.existsSync(path.join(d, `${i.archive}.wav`)));
+    const wavOf = (i) => path.join(d, folderOf(i), `${i.archive}.wav`);
+    const here = Object.values(SONGS).filter((i) => fs.existsSync(wavOf(i)));
+    const group = (loop) => here.filter((i) => i.loop === loop)
+      .map((i) => `${i.archive}  … ${i.bpm} BPM・${seconds(wavOf(i)).toFixed(1)} 秒・${i.use}`);
     const lines = [
       'さたぷよ BGM（Woody Class のプラグインで制作）',
       '',
@@ -920,7 +930,11 @@ try {
       '・.mp3 は試聴用（ループ曲は 2 回くり返してフェードアウト）',
       '・テーマ7 のエンドロール動画（mp4）は node tools/video/make_ending_video.mjs で作り直せる',
       '',
-      ...here.map((i) => `${i.archive}  … ${i.bpm} BPM・${i.loop ? 'ループ' : 'フル尺（ループなし）'}・${seconds(path.join(d, `${i.archive}.wav`)).toFixed(1)} 秒・${i.use}`),
+      '■ ループ（ループ フォルダ）',
+      ...group(true),
+      '',
+      '■ フル尺（フル尺 フォルダ）',
+      ...group(false),
       '',
     ];
     fs.writeFileSync(path.join(d, '00_曲の一覧.txt'), '﻿' + lines.join('\r\n'), 'utf8');

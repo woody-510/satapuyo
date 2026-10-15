@@ -96,6 +96,7 @@ node tools/music/make_bgm.mjs
 ```
 
 - ゲームで使う 4 曲は `assets/sound/bgm_*.mp3` に、保存用の「テーマ1〜7」は `music/` と `VSTプラグイン\BGM\` に、YouTube 用の「テーマ8〜12」は `VSTプラグイン\BGM\` だけに（wav と試聴用 mp3。`music/` は GitHub に上げない）
+- 保存用フォルダの中は「ループ」と「フル尺」に分かれている。一覧は `00_曲の一覧.txt`（`node tools/music/make_bgm.mjs --list` で一覧だけ書きなおせる）
 - `node tools/music/make_bgm.mjs bossa dnb` のように名前を書くと、その曲だけ作り直す（名前は `make_bgm.mjs` の `SONGS`）
 - ツール（TsuzumiTool・WaonTool・KatachiTool・HibikiUiShots）は `%USERPROFILE%\WoodyClassBuild\…` から読む（別の場所なら環境変数 `WOODY_BUILD`）
 - メロディ・リズムの刻み方・使うグルーヴや進行は `tools/music/make_bgm.mjs` の中に書いてある
@@ -117,7 +118,7 @@ node tools/music/make_bgm.mjs
 node tools/video/make_ending_video.mjs
 ```
 
-→ `music/` と `VSTプラグイン\BGM\` に「テーマ7 100万点の空（エンディング・J-POP）エンドロール.mp4」ができる。
+→ `music\フル尺\` と `VSTプラグイン\BGM\フル尺\` に「テーマ7 100万点の空（エンディング・J-POP）エンドロール.mp4」ができる。
 
 ## ボイス
 

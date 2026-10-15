@@ -5,7 +5,7 @@
 // しくみ：このフォルダのページ（ending_video.html）を Edge で画面なしに開き、ゲームと同じ描き方で
 // 1コマずつ描かせて受けとり、ffmpeg で動画にする。音は music/ のテーマ7（なければ assets/sound/bgm_ending.mp3）。
 // 必要なもの：Node.js 18 以上 / ffmpeg / Microsoft Edge（ネットにつながっていること。文字のフォントを読むため）
-// できあがり：music/ と VSTプラグイン/BGM/ に「テーマ7 エンディング（J-POP）エンドロール.mp4」
+// できあがり：music/フル尺/ と VSTプラグイン/BGM/フル尺/ に「（テーマ7 の名前）エンドロール.mp4」
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -17,7 +17,7 @@ import vm from 'node:vm';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PLUGINS = process.env.WOODY_PLUGINS || path.join(os.homedir(), 'Desktop', 'VSTプラグイン');
 const NAME = 'テーマ7 100万点の空（エンディング・J-POP）';
-const OUT_DIRS = [path.join(ROOT, 'music'), path.join(PLUGINS, 'BGM')];
+const OUT_DIRS = [path.join(ROOT, 'music', 'フル尺'), path.join(PLUGINS, 'BGM', 'フル尺')];
 const W = 1920, H = 1080, FPS = 30;
 const EDGE = [
   process.env.EDGE,
@@ -29,7 +29,7 @@ if (!EDGE) {
   process.exit(1);
 }
 
-const audio = [path.join(ROOT, 'music', `${NAME}.wav`), path.join(ROOT, 'assets', 'sound', 'bgm_ending.mp3')].find((p) => fs.existsSync(p));
+const audio = [path.join(ROOT, 'music', 'フル尺', `${NAME}.wav`), path.join(ROOT, 'assets', 'sound', 'bgm_ending.mp3')].find((p) => fs.existsSync(p));
 if (!audio) {
   console.error('エンディングの曲がありません（先に node tools/music/make_bgm.mjs jpop）');
   process.exit(1);
