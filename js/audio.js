@@ -27,7 +27,7 @@ const Sound = (() => {
     seGain.gain.value = 0.9;
     seGain.connect(master);
     bgmGain = ctx.createGain();
-    bgmGain.gain.value = 0.5;
+    bgmGain.gain.value = 0.9;
     bgmGain.connect(master);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
@@ -36,9 +36,29 @@ const Sound = (() => {
     for (const key of Object.keys(cfg)) if (!key.startsWith('bgm')) load(key);
     // タブを裏にしたら音を止める（電池にもやさしい）
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) ctx.suspend();
-      else ctx.resume();
+      if (document.hidden) {
+        ctx.suspend();
+        if (keepAlive) keepAlive.pause();
+      } else {
+        ctx.resume().catch(() => {});
+        if (keepAlive) keepAlive.play().catch(() => {});
+      }
     });
+  }
+
+  // iPhone（Safari、LINE などのアプリ内ブラウザも）はマナーモードだと Web Audio が消音になる。
+  // ふつうの <audio> で無音を流しておくと「音楽を再生中」あつかいになって、マナーモードでも鳴る。
+  let keepAlive = null;
+  function silentWav() {
+    const n = 8000; // 8kHz・8bit・1秒の無音
+    const b = new DataView(new ArrayBuffer(44 + n));
+    const str = (o, s) => [...s].forEach((c, i) => b.setUint8(o + i, c.charCodeAt(0)));
+    str(0, 'RIFF'); b.setUint32(4, 36 + n, true); str(8, 'WAVE'); str(12, 'fmt ');
+    b.setUint32(16, 16, true); b.setUint16(20, 1, true); b.setUint16(22, 1, true);
+    b.setUint32(24, 8000, true); b.setUint32(28, 8000, true); b.setUint16(32, 1, true); b.setUint16(34, 8, true);
+    str(36, 'data'); b.setUint32(40, n, true);
+    for (let i = 0; i < n; i++) b.setUint8(44 + i, 128);
+    return URL.createObjectURL(new Blob([b.buffer], { type: 'audio/wav' }));
   }
 
   function load(key) {
@@ -62,6 +82,12 @@ const Sound = (() => {
   function unlock() {
     init();
     if (!ctx) return false;
+    if (!keepAlive) {
+      keepAlive = new Audio(silentWav());
+      keepAlive.loop = true;
+      keepAlive.setAttribute('playsinline', '');
+    }
+    if (keepAlive.paused && !document.hidden) keepAlive.play().catch(() => {});
     if (ctx.state !== 'running') {
       ctx.resume().catch(() => {});
       // 古い iPhone は無音を1回鳴らすと起きる

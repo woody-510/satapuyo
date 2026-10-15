@@ -8,6 +8,7 @@
   --c4: #ffb703; --c4d: #c98a00;
   --c5: #a66bff; --c5d: #7442c9;
   --c6: #ff8a3d; --c6d: #c95f1a;
+  --c7: #14b8a6; --c7d: #0d8074;
   --cs: 40px;
 }
 
@@ -139,6 +140,7 @@ h2 {
 .c4 { --bc: var(--c4); --bd: var(--c4d); }
 .c5 { --bc: var(--c5); --bd: var(--c5d); }
 .c6 { --bc: var(--c6); --bd: var(--c6d); }
+.c7 { --bc: var(--c7); --bd: var(--c7d); }
 
 .menu-row { display: flex; gap: 12px; align-items: center; }
 .menu-row .half { flex: 1; }
@@ -557,3 +559,49 @@ kbd {
 }
 .splash p { margin: 0 0 6px; font-size: clamp(20px, 5vw, 28px); font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.3); }
 .splash small { font-size: 14px; font-weight: 500; opacity: 0.85; }
+
+/* ---------- おんがく（クレジット） ---------- */
+.music-note { font-size: 12px; opacity: 0.9; }
+.splash-hint { display: block; margin-top: 10px; font-size: 12px; opacity: 0.75; }
+.credits { text-align: left; }
+.credits h2 { text-align: center; }
+.credits-lead { margin: 0 0 14px; font-weight: 500; line-height: 1.6; text-align: center; }
+.credit-list { display: grid; gap: 10px; margin-bottom: 16px; }
+.credit-card {
+  padding: 12px 14px;
+  border: 3px solid var(--c7);
+  border-radius: 16px;
+  background: #fff;
+}
+.credit-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.credit-head b { font-size: 17px; font-weight: 900; }
+.credit-role {
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--c7);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 900;
+}
+.credit-card p { margin: 6px 0 8px; font-size: 13px; font-weight: 500; line-height: 1.6; color: var(--ink-soft); }
+.credit-link { font-size: 14px; font-weight: 900; color: var(--c7d); }
+.credit-link:focus-visible, .big-link:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.credit-links { display: grid; gap: 10px; margin-bottom: 16px; }
+.big-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 16px;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 18px;
+  color: #fff;
+  text-decoration: none;
+  text-align: center;
+  background: var(--c3);
+  box-shadow: 0 6px 0 var(--c3d);
+}
+.big-link.youtube { background: #ff2d2d; box-shadow: 0 6px 0 #b31414; }
+.big-link.booth { background: var(--c6); box-shadow: 0 6px 0 var(--c6d); }
+.big-link:active { transform: translateY(5px); box-shadow: none; }
+.big-link-title { font-size: 19px; font-weight: 900; text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2); }
+.big-link-sub { font-size: 12px; font-weight: 500; opacity: 0.95; }

@@ -45,12 +45,12 @@ window.GAME_CONFIG = {
   backgroundSeconds: 12, // 1枚あたりの表示時間
 
   // 音ファイル。null のままだと内蔵のピコピコ音が鳴る。
-  // BGM は tools/music/compose.mjs で作ったもの（loopStart〜loopEnd をつなぎ目なしでくり返す）。
+  // BGM は tools/music/make_bgm.mjs で Woody Class のプラグインから作ったもの（loopStart〜loopEnd をつなぎ目なしでくり返す）。
   // 自分の曲に差し替えるときは bgmGame: 'assets/sound/my_song.mp3' のように書けばファイル全体をループ。
   sounds: {
-    bgmTitle: { src: 'assets/sound/bgm_title.mp3', loopStart: 0.1, loopEnd: 27.53 }, // タイトル：テーマソング
-    bgmMenu: { src: 'assets/sound/bgm_menu.mp3', loopStart: 0.1, loopEnd: 48.1 },    // メニュー：落ちついた曲
-    bgmGame: { src: 'assets/sound/bgm_game.mp3', loopStart: 0.1, loopEnd: 48.1 },    // ゲーム中：激しめの曲
+    bgmTitle: { src: 'assets/sound/bgm_title.mp3', loopStart: 0.1, loopEnd: 25.7 }, // タイトル：テーマソング
+    bgmMenu: { src: 'assets/sound/bgm_menu.mp3', loopStart: 0.1, loopEnd: 48.1 },   // メニュー：落ちついた曲
+    bgmGame: { src: 'assets/sound/bgm_game.mp3', loopStart: 0.1, loopEnd: 48.1 },   // ゲーム中：激しめの曲
     move: null,
     rotate: null,
     land: null,
@@ -63,4 +63,39 @@ window.GAME_CONFIG = {
 
   // タイムアタックの制限時間（秒）
   timeAttackSeconds: 120,
+
+  // メニューの「おんがく」画面に出す、BGM を作ったプラグインとリンク
+  credits: {
+    lead: 'BGM は 3 曲とも、Woody Class の VST プラグインの音だけで作りました。',
+    plugins: [
+      {
+        name: 'Woody Tsuzumi Beats',
+        role: 'ドラム',
+        desc: '40 ジャンルのグルーヴが入ったビートシーケンサー。タイトルはアニソンの速い 8 ビート、メニューはローファイ、ゲーム中は邦ロック・アニソン・メタルのツーバス。',
+        url: 'https://woodyclass.booth.pm/items/8975757',
+      },
+      {
+        name: 'Woody Wasei Chords',
+        role: 'コード進行',
+        desc: '定番進行 113 項目から選べるコード進行シンセ。カノン進行・王道進行・テンション付き 2516・マイナー版 Axis などのボイシングをそのまま使用。',
+        url: 'https://woodyclass.booth.pm/items/8913254',
+      },
+      {
+        name: 'Woody Katachi Synth',
+        role: '音色（無料）',
+        desc: '波形の違いを見て聴いて学べるシンセ。チップチューン矩形リード、8bit ベース、ローファイ、プラック、Supersaw、Reese Bass などのプリセットで、和音・ベース・メロディを鳴らしています。',
+        url: 'https://woodyclass.booth.pm/items/8914910',
+      },
+      {
+        name: 'Woody Giongo EQ',
+        role: '仕上げの EQ',
+        desc: '言葉とオノマトペで操作する EQ。曲ごとに「明るいポップ」「ローファイ」「EDM」、ドラムに「ポップ」「メタル」のプリセットで仕上げています。',
+        url: 'https://woodyclass.booth.pm/items/8919240',
+      },
+    ],
+    links: [
+      { label: 'YouTube（Woody Class）', sub: 'プラグインの使い方や作曲のコツを動画で紹介中', url: 'https://www.youtube.com/@WoodyClass', kind: 'youtube' },
+      { label: 'BOOTH ショップ', sub: 'Woody Class のプラグイン一覧', url: 'https://woodyclass.booth.pm/', kind: 'booth' },
+    ],
+  },
 };

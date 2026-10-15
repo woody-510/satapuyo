@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=4">
+  <link rel="stylesheet" href="css/style.css?v=5">
 </head>
 <body>
   <div id="bg" aria-hidden="true">
@@ -26,6 +26,7 @@
       <div class="title-faces" id="title-faces"></div>
       <button class="start-btn" id="btn-start">PRESS START</button>
       <p class="small-note">クリック / タップ / Enter ではじめる</p>
+      <p class="small-note music-note">♪ BGM：Woody Class のプラグインで制作（くわしくはメニューの「おんがく」）</p>
     </div>
   </section>
 
@@ -50,6 +51,10 @@
           <button class="menu-btn c5 half" data-go="settings"><span class="menu-title">せってい</span></button>
           <button class="menu-btn c6 half" data-go="howto"><span class="menu-title">あそびかた</span></button>
         </div>
+        <button class="menu-btn c7" data-go="credits">
+          <span class="menu-title">♪ おんがく</span>
+          <span class="menu-sub">BGM を作ったプラグインと YouTube</span>
+        </button>
       </div>
       <button class="link-btn" data-go="title">タイトルへもどる</button>
     </div>
@@ -201,6 +206,17 @@
     </div>
   </section>
 
+  <!-- おんがく（クレジット） -->
+  <section class="screen" id="screen-credits" data-back="menu">
+    <div class="panel wide-panel credits">
+      <h2>おんがく</h2>
+      <p class="credits-lead" id="credits-lead"></p>
+      <div class="credit-list" id="credit-list"></div>
+      <div class="credit-links" id="credit-links"></div>
+      <button class="menu-btn c3" data-go="menu"><span class="menu-title">もどる</span></button>
+    </div>
+  </section>
+
   <!-- あそびかた -->
   <section class="screen" id="screen-howto" data-back="menu">
     <div class="panel wide-panel howto">
@@ -227,12 +243,13 @@
       <div class="splash-note">♪</div>
       <p>タップ / クリック ではじめる</p>
       <small>音が出ます</small>
+      <small class="splash-hint">聞こえないときは、本体の音量ボタンを上げてね（iPhone はマナーモードもオフに）</small>
     </div>
   </div>
 
-  <script src="js/config.js?v=4"></script>
-  <script src="js/audio.js?v=4"></script>
-  <script src="js/game.js?v=4"></script>
-  <script src="js/main.js?v=4"></script>
+  <script src="js/config.js?v=5"></script>
+  <script src="js/audio.js?v=5"></script>
+  <script src="js/game.js?v=5"></script>
+  <script src="js/main.js?v=5"></script>
 </body>
 </html>

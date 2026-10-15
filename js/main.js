@@ -28,7 +28,7 @@
     },
   };
   const settings = Object.assign(
-    { colors: 4, speed: 'normal', ghost: true, se: true, bgm: true, volume: 70, disabled: [] },
+    { colors: 4, speed: 'normal', ghost: true, se: true, bgm: true, volume: 90, disabled: [] },
     store.get('settings', {}),
   );
   const ranking = Object.assign({ endless: [], time: [] }, store.get('ranking', {}));
@@ -123,6 +123,7 @@
     if (name === 'ranking') renderRanking();
     if (name === 'gallery') renderGallery();
     if (name === 'settings') renderSettings();
+    if (name === 'credits') renderCredits();
     if (name === 'title') renderTitleFaces();
     if (audioReady) Sound.playBgm(bgmFor(name));
     if (name !== 'game') stopLoop();
@@ -136,15 +137,14 @@
     if (el) el.focus({ preventScroll: true });
   }
 
-  // 音が鳴るようになるまで、タップ・クリック・キーのたびに起こしにいく
+  // タップ・クリック・キーのたびに音を起こしにいく（スマホは電話などで音が止まることもあるので、ずっと見張る）
   const GESTURES = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'];
   function unlockAudio() {
-    const running = Sound.unlock();
+    Sound.unlock();
     if (!audioReady) {
       audioReady = true;
       Sound.playBgm(bgmFor(screen));
     }
-    if (running) GESTURES.forEach((ev) => window.removeEventListener(ev, unlockAudio, true));
   }
   GESTURES.forEach((ev) => window.addEventListener(ev, unlockAudio, true));
 
@@ -426,7 +426,7 @@
     if (typing || (tag === 'INPUT' && horizontal)) return;
     const root = !$('#pause-modal').hidden ? $('#pause-modal') : $('.screen.active');
     if (!root) return;
-    const items = $$('button, input', root).filter((el) => el.offsetParent !== null && !el.disabled);
+    const items = $$('button, input, a[href]', root).filter((el) => el.offsetParent !== null && !el.disabled);
     if (!items.length) return;
     e.preventDefault();
     const i = items.indexOf(document.activeElement);
@@ -600,6 +600,54 @@
     Sound.play('decide');
     renderGallery();
   });
+
+  // ---------------- おんがく（クレジット） ----------------
+  function renderCredits() {
+    const c = CFG.credits;
+    if (!c) return;
+    $('#credits-lead').textContent = c.lead;
+    const list = $('#credit-list');
+    list.textContent = '';
+    for (const p of c.plugins) {
+      const card = document.createElement('div');
+      card.className = 'credit-card';
+      const head = document.createElement('div');
+      head.className = 'credit-head';
+      const role = document.createElement('span');
+      role.className = 'credit-role';
+      role.textContent = p.role;
+      const name = document.createElement('b');
+      name.textContent = p.name;
+      head.append(role, name);
+      const desc = document.createElement('p');
+      desc.textContent = p.desc;
+      const link = document.createElement('a');
+      link.className = 'credit-link';
+      link.href = p.url;
+      link.target = '_blank';
+      link.rel = 'noopener';
+      link.textContent = 'BOOTH で見る ↗';
+      card.append(head, desc, link);
+      list.appendChild(card);
+    }
+    const links = $('#credit-links');
+    links.textContent = '';
+    for (const l of c.links || []) {
+      const a = document.createElement('a');
+      a.className = 'big-link ' + (l.kind || '');
+      a.href = l.url;
+      a.target = '_blank';
+      a.rel = 'noopener';
+      const t = document.createElement('span');
+      t.className = 'big-link-title';
+      t.textContent = l.label + ' ↗';
+      const sub = document.createElement('span');
+      sub.className = 'big-link-sub';
+      sub.textContent = l.sub || '';
+      a.append(t, sub);
+      links.appendChild(a);
+    }
+  }
 
   // ---------------- せってい ----------------
   function renderSettings() {

@@ -25,6 +25,7 @@
 - **ランキング** … モードごとにトップ10（ブラウザに保存）
 - **ずかん** … 顔の一覧と「けした数」。タップで ON / OFF して、出てくる顔を選べる
 - **せってい** … ぷよの種類（3〜5）、スピード、落下ガイド、効果音、BGM、音量
+- **おんがく** … BGM を作ったプラグイン（BOOTH）と YouTube のリンク
 
 ## 手元で動かす
 
@@ -59,22 +60,32 @@ python -m http.server 8000
 - `ringColors` … ぷよの枠の色
 - `title` … ゲームのタイトル
 
-## BGM
+## BGM（Woody Class のプラグインで制作）
 
-`tools/music/compose.mjs` の中でシンセを鳴らして作曲している（外部の音源は使っていない）。
+3 曲とも、[Woody Class](https://www.youtube.com/@WoodyClass) の VST プラグインの音だけで作っている。
+ゲームのメニューの「♪ おんがく」にも、使ったプラグインと YouTube のリンクを出している（中身は `js/config.js` の `credits`）。
 
-| 曲 | ジャンル | テンポ / 長さ |
+| プラグイン | 使ったところ |
+| --- | --- |
+| [Woody Tsuzumi Beats](https://woodyclass.booth.pm/items/8975757) | ドラム（アニソン・ローファイ・邦ロック・メタルのグルーヴ） |
+| [Woody Wasei Chords](https://woodyclass.booth.pm/items/8913254) | コード進行とボイシング（カノン進行・王道進行・テンション付き 2516・マイナー版 Axis など） |
+| [Woody Katachi Synth](https://woodyclass.booth.pm/items/8914910)（無料） | 和音・ベース・メロディの音色（チップチューン矩形リード・8bit ベース・ローファイ・プラック・Supersaw・Reese Bass など） |
+| [Woody Giongo EQ](https://woodyclass.booth.pm/items/8919240) | 仕上げの EQ（明るいポップ・ローファイ・EDM、ドラムにポップ・メタル） |
+
+| 曲 | 中身 | テンポ / 長さ |
 | --- | --- | --- |
-| タイトル（テーマソング） | 8bit チップチューン。ファミコン風の矩形波・三角波・ノイズドラム | 140 BPM / 16小節（約27秒） |
-| メニュー（落ちついた曲） | ローファイ・ヒップホップ。エレピ、ノイズのシェイカー、レコードのプチプチ | 80 BPM / 16小節（約48秒） |
-| ゲーム中（激しめ） | エレクトロ・ダンス。ひずんだ刻み、うねるベース、うら拍のスタブ、ノイズのシェイカー、タムのフィル、スネアロールで盛り上げてからドン | 160 BPM / 32小節（48秒） |
+| タイトル（テーマソング） | 8bit。カノン進行 → 王道進行 → ♭VI–♭VII–I、チップチューンのメロディ | 150 BPM / 16小節（25.6秒） |
+| メニュー（落ちついた曲） | ローファイ。テンション付き 2516、後半はシェイカーとプラックのメロディ | 80 BPM / 16小節（48秒） |
+| ゲーム中（激しめ） | 4つ打ち → 2ビート＋ツーバス → メロスピ → ブレイク → 全部のせ | 160 BPM / 32小節（48秒） |
 
-どれもつなぎ目なしでループする。曲をいじって作り直すときは（Node.js と ffmpeg が必要）:
+どれもつなぎ目なしでループする。作り直すときは（Node.js・ffmpeg と、Woody Class のプラグインのツールが必要）:
 
 ```bash
-node tools/music/compose.mjs
+node tools/music/make_bgm.mjs
 ```
 
+ツール（TsuzumiTool・WaonTool・KatachiTool・HibikiUiShots）は `%USERPROFILE%WoodyClassBuild…` から読む（別の場所なら環境変数 `WOODY_BUILD`）。
+メロディ・リズムの刻み方・使うグルーヴや進行は `tools/music/make_bgm.mjs` の中に書いてある。
 最後に表示されるループ位置（`loopStart` / `loopEnd`）を `js/config.js` の `sounds` に書く。
 自分で作った mp3 にするなら `bgmGame: 'assets/sound/my_song.mp3'` のようにファイル名だけ書けば、ファイル全体をループする。
 
@@ -106,5 +117,5 @@ js/audio.js       効果音とBGMの再生（ファイルがなければ内蔵�
 js/game.js        ぷよぷよ本体（盤面・回転・連鎖・得点・描画）
 js/main.js        画面遷移・入力・ランキング・ずかん・せってい
 assets/           画像
-tools/            画像作成スクリプト・BGM作曲スクリプト
+tools/            画像作成スクリプト・BGM作成スクリプト（プラグインで鳴らす）
 ```
