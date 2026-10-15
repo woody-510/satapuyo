@@ -14,6 +14,9 @@
 
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 
+/* hidden を付けたものは、ほかの display 指定があっても必ず消す（解放前のエンディングボタンなど） */
+[hidden] { display: none !important; }
+
 html, body {
   margin: 0;
   height: 100%;
