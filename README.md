@@ -83,6 +83,11 @@ python -m http.server 8000
 | テーマ5 ロッカー0004の逆襲（ボス戦・8bit×メタル） | アンダルシア進行 → ナポリの六の和音、ツーバス・ギャロップ・3・3・2 のキメ | 180 BPM / 32小節（42.7秒）ループ | （まだ使っていない） |
 | テーマ6 ぽかぽか商店街（町・8bit） | C F C G のほのぼの進行、ブーム・チック | 120 BPM / 16小節（32秒）ループ | （まだ使っていない） |
 | テーマ7 100万点の空（エンディング・J-POP） | 頭サビ → 8bit イントロ → A → B → サビ → 間奏 → A → B → サビ → 8bit ソロ → Cメロ → 落ちサビ → 半音上げのラスサビ → アウトロ | 160 BPM / 140小節（3分35秒） | エンディング |
+| テーマ8 午後のテラス席（ボサノバ・BGM） | 1625 → 裏コード終止 → サブドミナントマイナー、しゃべりの後ろ向けにメロディ控えめ | 120 BPM / 32小節（64秒）ループ | YouTube 用 |
+| テーマ9 深夜2時の作業部屋（ディープハウス・BGM） | ドリアン・ヴァンプ → ダイアトニック下降、うら拍のスタブ | 125 BPM / 32小節（61.4秒）ループ | YouTube 用 |
+| テーマ10 てくてく、さんぽ道（ゆるポップ・BGM） | Axis 進行 → 50年代進行、ウクレレっぽいプラックと口笛 | 100 BPM / 32小節（76.8秒）ループ | YouTube 用 |
+| テーマ11 ハロー、ネオンシティ（フューチャーベース） | イントロ → Aメロ → ビルドアップ → ドロップ → ブレイク → ドロップ2 → アウトロ | 150 BPM / 96小節（2分39秒） | YouTube 用 |
+| テーマ12 夜明けのハイウェイ（リキッド・ドラムンベース） | イントロ → ドロップ → ブレイク → ドロップ2 → アウトロ | 174 BPM / 112小節（2分41秒） | YouTube 用 |
 
 ループ曲はつなぎ目なしでループする。作り直すときは（Node.js・ffmpeg と、Woody Class のプラグインのツールが必要）:
 
@@ -90,7 +95,8 @@ python -m http.server 8000
 node tools/music/make_bgm.mjs
 ```
 
-- ゲームで使う 4 曲は `assets/sound/bgm_*.mp3` に、保存用の「テーマ1〜7」は `music/` と `VSTプラグイン\BGM\` に（wav と試聴用 mp3。`music/` は GitHub に上げない）
+- ゲームで使う 4 曲は `assets/sound/bgm_*.mp3` に、保存用の「テーマ1〜7」は `music/` と `VSTプラグイン\BGM\` に、YouTube 用の「テーマ8〜12」は `VSTプラグイン\BGM\` だけに（wav と試聴用 mp3。`music/` は GitHub に上げない）
+- `node tools/music/make_bgm.mjs bossa dnb` のように名前を書くと、その曲だけ作り直す（名前は `make_bgm.mjs` の `SONGS`）
 - ツール（TsuzumiTool・WaonTool・KatachiTool・HibikiUiShots）は `%USERPROFILE%\WoodyClassBuild\…` から読む（別の場所なら環境変数 `WOODY_BUILD`）
 - メロディ・リズムの刻み方・使うグルーヴや進行は `tools/music/make_bgm.mjs` の中に書いてある
 - 最後に表示されるループ位置（`loopStart` / `loopEnd`）を `js/config.js` の `sounds` に書く

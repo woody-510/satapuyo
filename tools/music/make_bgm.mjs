@@ -197,7 +197,8 @@ class Song {
     Object.assign(this, { name, bpm, bars, once });
     this.spbS = (60 / bpm) * SR; // 1拍のサンプル数
     this.loopS = Math.round(bars * 4 * this.spbS);
-    if (Math.abs(this.loopS - bars * 4 * this.spbS) > 1e-6) throw new Error('ループの長さが整数サンプルにならないテンポ');
+    // ループ曲は 1 ループがちょうど整数サンプルでないと、つなぎ目がずれる（ループしない曲は気にしなくていい）
+    if (!once && Math.abs(this.loopS - bars * 4 * this.spbS) > 1e-6) throw new Error('ループの長さが整数サンプルにならないテンポ');
     this.copies = once ? 1 : 3;
     this.total = once ? this.loopS + ending * SR : this.loopS * 3 + SR * 2;
     this.key = typeof key === 'function' ? key : () => key; // 拍ごとの移調（転調に使う）
@@ -629,16 +630,246 @@ function jpopSong() {
   return s.render({ eq: ['preset=brightpop'], target: -14 });
 }
 
+// 1小節ごとに 2 つの刻みを交互に使う（ボサノバなど、2 小節でひとまとまりのリズム用）
+function alternate(s, from, to, a, b, what, shift = 0) {
+  const out = [];
+  for (let i = from; i < to; i++) out.push(...s.rhythm(i, i + 1, (i - from) % 2 ? b : a, what, shift));
+  return out;
+}
+
+// ===================================================================
+//  テーマ8 午後のテラス席（ボサノバ・BGM / F メジャー / 120 BPM / 32小節・64秒）
+//  しゃべりの後ろで流しやすいように、メロディは少なめ・音量も控えめ
+// ===================================================================
+function bossaSong() {
+  const s = new Song('bossa', { bpm: 120, bars: 32, key: 5 });
+  // 1625 → 裏コード終止 → サブドミナントマイナーから循環へ → 裏コードで下がる 3625
+  s.progression([['M12', 2], ['M29', 2], ['M53'], ['M49', 2]]);
+  s.drums([
+    { from: 0, bars: 16, genre: 'bossa', groove: 0 }, // ボサノバの基本
+    { from: 16, bars: 16, genre: 'bossa', groove: 2 }, // シェイカーのボサノバ
+  ], -19, ['preset=jazz']);
+  // ベース：1拍目と3拍目に根音、そのうらで 5 度（ボサノバの定番）
+  s.synth('bass', K.triangle, s.rhythm(0, 32, [[0, 1.3, 0], [1.5, 0.45, 7], [2, 1.3, 0], [3.5, 0.45, 7]], 'bass'), -19);
+  s.synth('sub', K.subBass, s.rhythm(0, 32, [[0, 1.4], [2, 1.4]], 'bass', -12), -27);
+  // ギターのかわり：プラックでボサノバの刻み（2 小節でひとまとまり）
+  s.synth('comp', K.pluck, alternate(s, 0, 32, [[0, 0.4], [1.5, 0.4], [3, 0.4]], [[0.5, 0.4], [2, 0.4], [3.5, 0.4]], 'upper', 12), -21);
+  s.synth('pad', K.pad, s.rhythm(0, 32, [[0, 3.9]], 'upper'), -28);
+  const melody = [
+    '- - A5 . F5 . E5 .', 'F5 . . . Eb5 . . .', 'E5 . . . . . D5 .', 'E5 . . . - - - -',
+    '- - C6 . A5 . F5 .', 'Ab5 . . . F5 . . .', 'G5 . . . E5 . . .', 'D5 . . . . . - -',
+  ];
+  const melody2 = [
+    'B5 . . . Bb5 . . .', 'A5 . . . Ab5 . . .', 'G5 . . . E5 . . .', '- - - - - - - -',
+    'D6 . B5 . Db6 . Bb5 .', 'C6 . A5 . B5 . Ab5 .', 'G5 . . . E5 . D5 .', 'E5 . . . . . - -',
+  ];
+  s.synth('melody', K.sine, [...s.melody(melody, 8, -12), ...s.melody(melody2, 24, -12)], -21);
+  return s.render({ eq: ['preset=acoustic'], target: -16.5 });
+}
+
+// ===================================================================
+//  テーマ9 深夜2時の作業部屋（ディープハウス・BGM / F マイナー / 125 BPM / 32小節・61秒）
+// ===================================================================
+function houseSong() {
+  const s = new Song('house', { bpm: 125, bars: 32, key: -4 });
+  s.progression([['m07', 4], ['M21', 4]]); // ドリアン・ヴァンプ（Am7 D7）→ ダイアトニック下降（FM7 Em7 Dm7 CM7）
+  s.drums([
+    { from: 0, bars: 8, genre: 'house', groove: 12 }, // ミニマルなハウス
+    { from: 8, bars: 24, genre: 'house', groove: 3 }, // ディープハウス
+  ], -17, ['preset=pop']);
+  s.synth('bass', K.triangle, s.rhythm(0, 32, [[0.5, 0.4, 0], [1.5, 0.2, 0], [1.75, 0.4, 12], [2.5, 0.4, 0], [3.5, 0.35, 7]], 'bass'), -18);
+  s.synth('sub', K.subBass, s.rhythm(0, 32, [[0.5, 0.45], [1.5, 0.2], [2.5, 0.45], [3.5, 0.3]], 'bass', -12), -23);
+  // うら拍のコードスタブ（ディープハウスの定番）と、うしろのパッド
+  s.synth('stab', K.lofi, s.rhythm(0, 32, [[1.5, 0.45], [3.5, 0.6]], 'upper'), -21);
+  s.synth('pad', K.pad, s.rhythm(8, 32, [[0, 3.9]], 'upper', 12), -29);
+  // プラックの短いフレーズをくり返す
+  s.synth('pluck', K.pluck, s.rhythm(8, 32, [[0, 0.2], [0.75, 0.2], [1.5, 0.2], [2.25, 0.2], [3, 0.2]], 'arpUp', 12), -23);
+  // 後半だけ、口笛みたいなメロディを少し
+  const whistle = [
+    'C6 . . . A5 . . .', 'G5 . . . . . - -', 'F5 . . . E5 . D5 .', 'E5 . . . . . - -',
+    'C6 . . . A5 . . .', 'G5 . . . E5 . . .', 'F5 . . . D5 . . .', 'C5 . . . . . - -',
+  ];
+  s.synth('melody', K.sine, s.melody(whistle, 24), -22);
+  return s.render({ eq: ['preset=edm'], target: -16 });
+}
+
+// ===================================================================
+//  テーマ10 てくてく、さんぽ道（ゆるポップ・BGM / D メジャー / 100 BPM / 32小節・77秒）
+//  ウクレレっぽいプラック、口笛っぽいサイン波、鉄琴っぽい三角波
+// ===================================================================
+function vlogSong() {
+  const s = new Song('vlog', { bpm: 100, bars: 32, key: 2 });
+  s.progression([['M09', 4], ['M11', 2], ['M18', 2]]); // C G Am F ×4 → C Am F G ×2 → C F C G ×2
+  s.drums([
+    { from: 0, bars: 16, genre: 'pop', groove: 7 }, // シェイカーで揺らす
+    { from: 16, bars: 16, genre: 'pop', groove: 6 }, // タンバリン入り（モータウン風）
+  ], -19, ['preset=pop']);
+  s.synth('bass', K.triangle, s.rhythm(0, 32, [[0, 0.9, 0], [1.5, 0.4, 7], [2, 0.9, 0], [3.5, 0.4, 7]], 'bass'), -19);
+  // ウクレレのかわり：ジャン・ジャジャ・ジャジャンの刻み
+  s.synth('uke', K.pluck, s.rhythm(0, 32, [[0, 0.3], [1, 0.25], [1.5, 0.25], [2.5, 0.25], [3, 0.25], [3.5, 0.25]], 'upper', 12), -21);
+  s.synth('glock', K.triangle, s.rhythm(0, 16, [[0, 0.4], [1.5, 0.4], [3, 0.4]], 'arpUp', 24), -26);
+  const whistle = [
+    'E5 . G5 . . . E5 .', 'C5 . . . A4 . C5 .', 'D5 . . C5 A4 . . .', 'B4 . . . - - - -',
+    'E5 . G5 . C6 . B5 .', 'A5 . . G5 E5 . . .', 'F5 . . E5 D5 . C5 .', 'D5 . . . - - - -',
+    'G5 . . E5 . . C5 .', 'A5 . . . F5 . . .', 'G5 . . E5 . . C5 .', 'D5 . . . . . - -',
+    'E5 . . G5 . . C6 .', 'A5 . . . F5 . A5 .', 'G5 . . E5 . C5 . .', 'D5 . . . B4 . . .',
+  ];
+  s.synth('whistle', K.sine, s.melody(whistle, 16), -20);
+  return s.render({ eq: ['preset=brightpop'], target: -16 });
+}
+
+// ===================================================================
+//  テーマ11 ハロー、ネオンシティ（フューチャーベース・フル尺 / F メジャー / 150 BPM / 96小節・約2分40秒）
+//  イントロ → Aメロ → ビルドアップ → ドロップ → ブレイク → Aメロ2 → ビルドアップ2 → ドロップ2 → アウトロ
+// ===================================================================
+function futureSong() {
+  const s = new Song('future', { bpm: 150, bars: 96, once: true, ending: 5, key: 5 });
+  const DROP = ['M01', 4]; // FM7 G7 Em7 Am7 ×4
+  const BUILD = ['M19', 2]; // F G Am Am ×2
+  s.progression([
+    ['M01', 2], // 0  イントロ（8）
+    ['M21', 4], // 8  Aメロ（16）FM7 Em7 Dm7 CM7
+    BUILD, // 24 ビルドアップ（8）
+    DROP, // 32 ドロップ（16）
+    ['M21', 2], // 48 ブレイク（8）
+    ['M21', 2], // 56 Aメロ2（8）
+    BUILD, // 64 ビルドアップ2（8）
+    DROP, // 72 ドロップ2（16）
+    ['M21', 2], // 88 アウトロ（8）
+  ]);
+  s.drums([
+    { from: 4, bars: 4, genre: 'edm', groove: 16 }, // イントロのキックとハイハット
+    { from: 8, bars: 16, genre: 'edm', groove: 16 },
+    { from: 24, bars: 4, genre: 'edm', groove: 2 }, // ビルドアップ（4小節）
+    { from: 28, bars: 2, genre: 'edm', groove: 7 }, // スネアのビルドアップ
+    { from: 30, bars: 2, genre: 'edm', groove: 17 }, // ドロップの直前
+    { from: 32, bars: 16, genre: 'edm', groove: 3 }, // フューチャーベース
+    { from: 56, bars: 8, genre: 'edm', groove: 16 },
+    { from: 64, bars: 4, genre: 'edm', groove: 2 },
+    { from: 68, bars: 2, genre: 'edm', groove: 14 }, // クラップのビルドアップ
+    { from: 70, bars: 2, genre: 'edm', groove: 17 },
+    { from: 72, bars: 16, genre: 'edm', groove: 13 }, // キックを細かくしたドロップ
+    { from: 88, bars: 4, genre: 'edm', groove: 16 },
+  ], -16, ['preset=pop']);
+  const drops = [[32, 48], [72, 88]];
+  const chop = [[0, 0.6], [0.75, 0.6], [1.5, 0.4], [2, 0.6], [2.75, 0.4], [3.25, 0.6]]; // フューチャーベースの「刻み」
+  s.synth('sub', K.subBass, [
+    ...s.rhythm(8, 24, [[0, 1.9], [2, 1.9]], 'bass', -12),
+    ...s.rhythm(24, 30, EIGHTHS.map((o) => [o, 0.45]), 'bass', -12),
+    ...drops.flatMap(([a, b]) => s.rhythm(a, b, chop, 'bass', -12)),
+    ...s.rhythm(56, 64, [[0, 1.9], [2, 1.9]], 'bass', -12),
+    ...s.rhythm(64, 70, EIGHTHS.map((o) => [o, 0.45]), 'bass', -12),
+  ], -18);
+  s.synth('fbass', K.futureBass, drops.flatMap(([a, b]) => s.rhythm(a, b, chop, 'bass', 12)), -19);
+  s.synth('saw', K.supersaw, [
+    ...drops.flatMap(([a, b]) => s.rhythm(a, b, chop, 'upper')),
+    ...s.rhythm(24, 32, [[0, 3.9]], 'upper'), // ビルドアップはのばす
+    ...s.rhythm(64, 72, [[0, 3.9]], 'upper'),
+  ], -20);
+  s.synth('pad', K.pad, [
+    ...s.rhythm(0, 32, [[0, 3.9]], 'upper'),
+    ...s.rhythm(48, 72, [[0, 3.9]], 'upper'),
+    ...s.rhythm(88, 96, [[0, 3.9]], 'upper'),
+  ], -24);
+  s.synth('pluck', K.pluck, [
+    ...s.rhythm(0, 24, EIGHTHS.map((o) => [o, 0.3]), 'arpUp', 12),
+    ...s.rhythm(24, 28, EIGHTHS.map((o) => [o, 0.2]), 'arpUp', 12),
+    ...s.rhythm(28, 32, SIXTEENTHS, 'arpUp', 12), // だんだん細かく
+    ...s.rhythm(48, 64, EIGHTHS.map((o) => [o, 0.3]), 'arpUp', 12),
+    ...s.rhythm(64, 68, EIGHTHS.map((o) => [o, 0.2]), 'arpUp', 12),
+    ...s.rhythm(68, 72, SIXTEENTHS, 'arpUp', 12),
+    ...s.rhythm(88, 96, EIGHTHS.map((o) => [o, 0.3]), 'arpUp', 12).filter((n) => n.beat < 94 * 4),
+  ], -22);
+  const DROP_M = [
+    'A5 . C6 . E6 . D6 C6', 'D6 . . B5 . G5 . -', 'G5 . B5 . D6 . E6 D6', 'C6 . . . . . - -',
+    'A5 . C6 . E6 . G6 E6', 'F6 . . D6 . B5 . -', 'E6 . D6 . B5 . G5 .', 'A5 . . . . . - -',
+  ];
+  const DROP_M2 = [...DROP_M.slice(0, 7), 'A5 . . . C6 . E6 .'];
+  const VERSE_M = [
+    '- - C5 . A4 . C5 .', 'D5 . . . B4 . G4 .', 'A4 . . . C5 . D5 .', 'E5 . . . . . - -',
+    '- - C5 . A4 . F5 .', 'E5 . . . D5 . B4 .', 'C5 . . . D5 . F5 .', 'E5 . . . . . - -',
+  ];
+  const VERSE_M2 = [...VERSE_M.slice(0, 7), 'G5 . . . . . - -'];
+  const BUILD_M = ['F5 . . . . . . .', 'G5 . . . . . . .', 'A5 . . . . . . .', 'C6 . . . B5 . . .'];
+  // Aメロとブレイクはやわらかい三角波、ドロップは Supersaw（2回目は 1 オクターブ上のきらきらも）
+  s.synth('vox', K.triangle, [...s.melody([...VERSE_M, ...VERSE_M2], 8), ...s.melody(DROP_M, 48, -12), ...s.melody(VERSE_M2, 56)], -17);
+  s.synth('build', K.chip25, [...s.melody([...BUILD_M, ...BUILD_M], 24), ...s.melody([...BUILD_M, ...BUILD_M], 64)], -19);
+  s.synth('lead', K.supersaw, [...s.melody([...DROP_M, ...DROP_M2], 32), ...s.melody([...DROP_M, ...DROP_M2], 72)], -16);
+  s.synth('sparkle', K.chip12, s.melody([...DROP_M, ...DROP_M2], 72, 12), -23);
+  return s.render({ eq: ['preset=edm'], target: -14 });
+}
+
+// ===================================================================
+//  テーマ12 夜明けのハイウェイ（リキッド・ドラムンベース・フル尺 / D マイナー / 174 BPM / 112小節・約2分40秒）
+//  イントロ → ドロップ → ブレイク → ドロップ2 → アウトロ
+// ===================================================================
+function dnbSong() {
+  const s = new Song('dnb', { bpm: 174, bars: 112, once: true, ending: 6, key: 5 });
+  s.progression([
+    ['m09', 2], // 0   イントロ（16）Dm7 G7 CM7 FM7 Bm7♭5 E7 Am Am
+    ['m09', 4], // 16  ドロップ（32）
+    ['m16', 4], // 48  ブレイク（16）Am7 FM7 Bm7♭5 E7
+    ['m09', 4], // 64  ドロップ2（32）
+    ['m09', 2], // 96  アウトロ（16）
+  ]);
+  s.drums([
+    { from: 8, bars: 8, genre: 'dnb', groove: 19 }, // ハイハットだけのイントロ
+    { from: 16, bars: 24, genre: 'dnb', groove: 6 }, // リキッド
+    { from: 40, bars: 8, genre: 'dnb', groove: 2 }, // 16分ハイハット
+    { from: 56, bars: 8, genre: 'dnb', groove: 7 }, // ハーフタイム（ブレイクの後半で盛り上げ）
+    { from: 64, bars: 24, genre: 'dnb', groove: 3 }, // ゴースト入りのスネア
+    { from: 88, bars: 8, genre: 'dnb', groove: 18 }, // 開くハイハットで走る
+    { from: 96, bars: 8, genre: 'dnb', groove: 19 },
+  ], -16, ['preset=pop']);
+  const drops = [[16, 48], [64, 96]];
+  s.synth('reese', K.reese, drops.flatMap(([a, b]) => s.rhythm(a, b, [[0, 1.4, 0], [1.5, 0.4, 0], [2.5, 1.2, 0], [3.5, 0.45, 12]], 'bass')), -18);
+  s.synth('sub', K.subBass, [
+    ...drops.flatMap(([a, b]) => s.rhythm(a, b, [[0, 1.4], [1.5, 0.4], [2.5, 1.4]], 'bass', -12)),
+    ...s.rhythm(56, 64, [[0, 3.9]], 'bass', -12),
+  ], -21);
+  s.synth('pad', K.pad, s.rhythm(0, 112, [[0, 3.9]], 'upper').filter((n) => n.beat < 110 * 4), -22);
+  s.synth('keys', K.lofi, [
+    ...drops.flatMap(([a, b]) => s.rhythm(a, b, [[0, 1.2], [1.5, 0.4], [2.5, 1.2]], 'upper')),
+    ...s.rhythm(48, 56, [[0, 3.9]], 'upper'),
+  ], -22);
+  s.synth('arp', K.pluck, [
+    ...s.rhythm(0, 16, EIGHTHS.map((o) => [o, 0.3]), 'arpUp', 12),
+    ...drops.flatMap(([a, b]) => s.rhythm(a, b, EIGHTHS.map((o) => [o, 0.25]), 'arp', 24)),
+    ...s.rhythm(96, 108, EIGHTHS.map((o) => [o, 0.3]), 'arpUp', 12),
+  ], -24);
+  const LEAD = [
+    'F5 . . . A5 . . C6', 'B5 . . . G5 . . .', 'E5 . . . G5 . B5 .', 'A5 . . . . . - -',
+    'D6 . . . B5 . A5 .', 'G#5 . . . B5 . . .', 'A5 . . . E5 . . .', 'C6 . . . B5 . A5 .',
+    'A5 . . . C6 . . D6', 'D6 . . . B5 . . G5', 'G5 . . . E5 . . .', 'F5 . . . E5 . . .',
+    'D5 . . . F5 . A5 .', 'B5 . . . G#5 . . .', 'A5 . . . . . . .', '- - - - - - - -',
+  ];
+  const BREAK = [
+    'E5 . . . . . . .', 'C5 . . . A4 . . .', 'D5 . . . F5 . . .', 'E5 . . . G#4 . . .',
+    'E5 . . . A5 . . .', 'C6 . . . A5 . . .', 'B5 . . . D6 . . .', 'G#5 . . . . . . .',
+  ];
+  s.synth('lead', K.triangle, [...s.melody([...LEAD, ...LEAD], 16), ...s.melody([...LEAD, ...LEAD], 64, -12)], -17);
+  s.synth('lead2', K.supersaw, s.melody([...LEAD, ...LEAD], 64), -18);
+  s.synth('hint', K.sine, s.melody(LEAD.slice(0, 8), 8, -12), -26); // イントロでうっすら予告
+  s.synth('break', K.sine, s.melody(BREAK, 48), -18);
+  return s.render({ eq: ['preset=edm'], target: -14 });
+}
+
 // ---------------- 書き出し ----------------
-// name: ゲームで使うときのファイル名（bgm_<name>.mp3。null ならゲームでは使わない）、archive: 保存用の名前
+// game: ゲームで使うときのファイル名（bgm_<game>.mp3。null ならゲームでは使わない）、archive: 保存用の名前、
+// where: 'both' … puyo/music と VSTプラグイン/BGM の両方 / 'vst' … VSTプラグイン/BGM だけ（YouTube 用など）、use: 一覧に書く使いみち
 const SONGS = {
-  title: { make: titleSong, game: 'title', archive: 'テーマ1 はじまりのピコピコ（タイトル・8bit）', bpm: 150, note: 'ループ' },
-  menu: { make: menuSong, game: 'menu', archive: 'テーマ2 午後3時のローファイ（メニュー）', bpm: 80, note: 'ループ' },
-  game: { make: gameSong, game: 'game', archive: 'テーマ3 連鎖ラッシュ（バトル・激しめ）', bpm: 160, note: 'ループ' },
-  citypop: { make: cityPopSong, game: null, archive: 'テーマ4 ミッドナイト・モール（シティポップ）', bpm: 120, note: 'ループ' },
-  boss: { make: bossSong, game: null, archive: 'テーマ5 ロッカー0004の逆襲（ボス戦・8bit×メタル）', bpm: 180, note: 'ループ' },
-  town: { make: townSong, game: null, archive: 'テーマ6 ぽかぽか商店街（町・8bit）', bpm: 120, note: 'ループ' },
-  jpop: { make: jpopSong, game: 'ending', archive: 'テーマ7 100万点の空（エンディング・J-POP）', bpm: 160, note: 'フル尺（ループなし）' },
+  title: { make: titleSong, game: 'title', archive: 'テーマ1 はじまりのピコピコ（タイトル・8bit）', bpm: 150, loop: true, where: 'both', use: 'タイトル画面で使用' },
+  menu: { make: menuSong, game: 'menu', archive: 'テーマ2 午後3時のローファイ（メニュー）', bpm: 80, loop: true, where: 'both', use: 'メニュー画面で使用' },
+  game: { make: gameSong, game: 'game', archive: 'テーマ3 連鎖ラッシュ（バトル・激しめ）', bpm: 160, loop: true, where: 'both', use: 'ゲーム中に使用' },
+  citypop: { make: cityPopSong, game: null, archive: 'テーマ4 ミッドナイト・モール（シティポップ）', bpm: 120, loop: true, where: 'both', use: '未使用' },
+  boss: { make: bossSong, game: null, archive: 'テーマ5 ロッカー0004の逆襲（ボス戦・8bit×メタル）', bpm: 180, loop: true, where: 'both', use: '未使用' },
+  town: { make: townSong, game: null, archive: 'テーマ6 ぽかぽか商店街（町・8bit）', bpm: 120, loop: true, where: 'both', use: '未使用' },
+  jpop: { make: jpopSong, game: 'ending', archive: 'テーマ7 100万点の空（エンディング・J-POP）', bpm: 160, loop: false, where: 'both', use: 'エンディングで使用' },
+  bossa: { make: bossaSong, game: null, archive: 'テーマ8 午後のテラス席（ボサノバ・BGM）', bpm: 120, loop: true, where: 'vst', use: 'YouTube 用 BGM（解説・トークの後ろに）' },
+  house: { make: houseSong, game: null, archive: 'テーマ9 深夜2時の作業部屋（ディープハウス・BGM）', bpm: 125, loop: true, where: 'vst', use: 'YouTube 用 BGM（作業・紹介の後ろに）' },
+  vlog: { make: vlogSong, game: null, archive: 'テーマ10 てくてく、さんぽ道（ゆるポップ・BGM）', bpm: 100, loop: true, where: 'vst', use: 'YouTube 用 BGM（vlog・日常の後ろに）' },
+  future: { make: futureSong, game: null, archive: 'テーマ11 ハロー、ネオンシティ（フューチャーベース）', bpm: 150, loop: false, where: 'vst', use: 'YouTube 用（フル尺）' },
+  dnb: { make: dnbSong, game: null, archive: 'テーマ12 夜明けのハイウェイ（リキッド・ドラムンベース）', bpm: 174, loop: false, where: 'vst', use: 'YouTube 用（フル尺）' },
 };
 for (const [name, exe] of Object.entries(TOOL)) {
   if (!fs.existsSync(exe)) {
@@ -657,7 +888,7 @@ try {
     const t0 = Date.now();
     console.log(`  ${info.archive}`);
     const { game, loop, preview } = info.make();
-    const loopSec = info.note === 'ループ' ? loop.length / 2 / SR : null;
+    const loopSec = info.loop ? loop.length / 2 / SR : null;
     if (info.game) {
       const wav = path.join(WORK, 'game.wav');
       writeWav(wav, game);
@@ -669,27 +900,31 @@ try {
     const prevPath = path.join(WORK, 'preview.wav');
     writeWav(wavPath, loop);
     writeWav(prevPath, preview);
-    for (const d of ARCHIVE_DIRS) {
+    for (const d of info.where === 'vst' ? ARCHIVE_DIRS.slice(1) : ARCHIVE_DIRS) {
       fs.copyFileSync(wavPath, path.join(d, `${info.archive}.wav`));
       mp3(prevPath, path.join(d, `${info.archive}.mp3`), 192);
     }
-    info.seconds = loop.length / 2 / SR;
-    console.log(`    → ${(info.seconds).toFixed(1)} 秒（${((Date.now() - t0) / 1000).toFixed(0)} 秒で作成）`);
+    console.log(`    → ${(loop.length / 2 / SR).toFixed(1)} 秒（${((Date.now() - t0) / 1000).toFixed(0)} 秒で作成）`);
   }
-  // 保存用フォルダに一覧を書く
-  const lines = [
-    'さたぷよ BGM（Woody Class のプラグインで制作）',
-    '',
-    'ドラム：Woody Tsuzumi Beats / コード進行：Woody Wasei Chords / 音色：Woody Katachi Synth / 仕上げEQ：Woody Giongo EQ',
-    '作り方：puyo\\tools\\music\\make_bgm.mjs（node tools/music/make_bgm.mjs で全部作り直す）',
-    '',
-    '・ループ曲の .wav はちょうど 1 ループ。くり返して鳴らせばつなぎ目なしでループする（48kHz / 24bit）',
-    '・.mp3 は試聴用（ループ曲は 2 回くり返してフェードアウト）',
-    '',
-    ...Object.values(SONGS).map((i) => `${i.archive}  … ${i.bpm} BPM・${i.note}${i.seconds ? `・${i.seconds.toFixed(1)} 秒` : ''}`),
-    '',
-  ];
-  for (const d of ARCHIVE_DIRS) fs.writeFileSync(path.join(d, '00_曲の一覧.txt'), '﻿' + lines.join('\r\n'), 'utf8');
+  // 保存用フォルダに一覧を書く（そのフォルダにある曲だけ。長さは wav から測る）
+  const seconds = (f) => +execFileSync('ffprobe', ['-v', 'error', '-show_entries', 'format=duration', '-of', 'csv=p=0', f]).toString().trim();
+  for (const d of ARCHIVE_DIRS) {
+    const here = Object.values(SONGS).filter((i) => fs.existsSync(path.join(d, `${i.archive}.wav`)));
+    const lines = [
+      'さたぷよ BGM（Woody Class のプラグインで制作）',
+      '',
+      'ドラム：Woody Tsuzumi Beats / コード進行：Woody Wasei Chords / 音色：Woody Katachi Synth / 仕上げEQ：Woody Giongo EQ',
+      '作り方：puyo/tools/music/make_bgm.mjs（node tools/music/make_bgm.mjs で全部作り直す。曲の名前を書けばその曲だけ）',
+      '',
+      '・ループ曲の .wav はちょうど 1 ループ。くり返して鳴らせばつなぎ目なしでループする（48kHz / 24bit）',
+      '・.mp3 は試聴用（ループ曲は 2 回くり返してフェードアウト）',
+      '・テーマ7 のエンドロール動画（mp4）は node tools/video/make_ending_video.mjs で作り直せる',
+      '',
+      ...here.map((i) => `${i.archive}  … ${i.bpm} BPM・${i.loop ? 'ループ' : 'フル尺（ループなし）'}・${seconds(path.join(d, `${i.archive}.wav`)).toFixed(1)} 秒・${i.use}`),
+      '',
+    ];
+    fs.writeFileSync(path.join(d, '00_曲の一覧.txt'), '﻿' + lines.join('\r\n'), 'utf8');
+  }
 } finally {
   fs.rmSync(WORK, { recursive: true, force: true });
 }
