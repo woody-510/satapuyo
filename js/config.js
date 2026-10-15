@@ -61,6 +61,16 @@ window.GAME_CONFIG = {
     decide: null,
   },
 
+  // ゲーム中のボイス（null にすると鳴らない）。元のファイルは voice フォルダ
+  voices: {
+    start: 'assets/voice/start.mp3', // ゲーム開始（my f）
+    chain: 'assets/voice/chain.mp3', // 連鎖が終わったとき（again）
+    cutin: 'assets/voice/cutin.mp3', // ゲーム中にたまにカットイン（with y）
+    end: 'assets/voice/end.mp3', //     ゲーム終了（are you）
+  },
+  voiceChainMin: 2, // 何れんさ以上で連鎖のボイスを鳴らすか
+  voiceCutinSeconds: [25, 50], // カットインの間隔（この秒数のあいだでランダム）
+
   // タイムアタックの制限時間（秒）
   timeAttackSeconds: 120,
 

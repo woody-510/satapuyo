@@ -353,6 +353,7 @@ class PuyoGame {
       Sound.play('allClear');
       this.cb.banner('ぜんけし!!', 'allclear');
     }
+    if (this.chain > 0 && this.cb.chainEnd) this.cb.chainEnd(this.chain);
     this.chain = 0;
     if (this.grid[1][2]) return this.finish('gameover');
     if (this.timeUp) return this.finish('timeup');
@@ -387,14 +388,17 @@ class PuyoGame {
     this.phase = 'over';
     this.phaseT = 0;
     this.reason = reason;
+    // 終わりのボイスがあるときは、効果音を重ねない
+    const voice = Sound.hasVoice('end');
     if (reason === 'gameover') {
-      Sound.play('gameOver');
+      if (!voice) Sound.play('gameOver');
       this.cb.banner('ばたんきゅ〜', 'over');
       for (const row of this.grid) for (const c of row) if (c) { c.vy = -3 - Math.random() * 4; c.out = true; }
     } else {
-      Sound.play('allClear');
+      if (!voice) Sound.play('allClear');
       this.cb.banner('TIME UP!', 'over');
     }
+    if (this.cb.over) this.cb.over(reason);
   }
 
   // ---------------- 毎フレーム ----------------

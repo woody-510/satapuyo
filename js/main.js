@@ -28,16 +28,16 @@
     },
   };
   const settings = Object.assign(
-    { colors: 4, speed: 'normal', ghost: true, se: true, bgm: true, volume: 90, disabled: [] },
+    { colors: 4, speed: 'normal', ghost: true, se: true, bgm: true, voice: true, volume: 90, disabled: [] },
     store.get('settings', {}),
   );
   const ranking = Object.assign({ endless: [], time: [] }, store.get('ranking', {}));
   const stats = Object.assign({ pops: {} }, store.get('stats', {}));
   const saveSettings = () => {
     store.set('settings', settings);
-    Sound.apply({ se: settings.se, bgm: settings.bgm, volume: settings.volume / 100 });
+    Sound.apply({ se: settings.se, bgm: settings.bgm, voice: settings.voice, volume: settings.volume / 100 });
   };
-  Sound.apply({ se: settings.se, bgm: settings.bgm, volume: settings.volume / 100 });
+  Sound.apply({ se: settings.se, bgm: settings.bgm, voice: settings.voice, volume: settings.volume / 100 });
 
   // ---------------- 画像 ----------------
   const faceImgs = CFG.faces.map((f) => {
@@ -241,8 +241,17 @@
       mode,
       speed: settings.speed,
       ghost: settings.ghost,
-      callbacks: { banner, chain: chainFx, end: showResult },
+      callbacks: {
+        banner,
+        chain: chainFx,
+        end: showResult,
+        // 連鎖が終わったら「again」、ゲームが終わったら「are you」
+        chainEnd: (n) => n >= (CFG.voiceChainMin || 2) && Sound.playVoice('chain'),
+        over: () => Sound.playVoice('end'),
+      },
     });
+    Sound.playVoice('start'); // ゲーム開始の「my f」
+    cutinTimer = nextCutin();
     Object.assign(hud, { score: -1, shown: 0, chain: -1, max: -1, time: '', level: -1, warn: null });
     $('#hud-time-label').textContent = mode === 'time' ? 'のこり' : 'TIME';
     layout();
@@ -258,10 +267,32 @@
       lastT = t;
       if (!game) return;
       game.update(dt);
+      if (!game) return; // 終わってリザルトへ行った
       game.render();
       updateHud();
+      tickCutin(dt);
     };
     rafId = requestAnimationFrame(loop);
+  }
+
+  // ゲーム中にたまに「with y」のカットイン（ほかの声とは重ねない）
+  let cutinTimer = 0;
+  function nextCutin() {
+    const [a, b] = CFG.voiceCutinSeconds || [25, 50];
+    return a + Math.random() * (b - a);
+  }
+  function tickCutin(dt) {
+    if (!Sound.hasVoice('cutin') || game.paused || game.done || game.phase === 'ready' || game.phase === 'over') return;
+    cutinTimer -= Math.min(dt, 0.1);
+    if (cutinTimer > 0) return;
+    if (game.phase !== 'fall' || Sound.voicePlaying() || $('.cutin', fx)) {
+      cutinTimer = 1.5; // 連鎖中などは少し待ってからもう一度
+      return;
+    }
+    cutinTimer = nextCutin();
+    Sound.playVoice('cutin');
+    const faces = game.faceIds.filter(Boolean);
+    showCutin(faces[Math.floor(Math.random() * faces.length)], '♪');
   }
 
   function stopLoop() {
@@ -329,19 +360,24 @@
     el.addEventListener('animationend', () => el.remove());
     fx.appendChild(el);
 
-    if (n >= 4 && faceSrc) {
-      $$('.cutin', fx).forEach((c) => c.remove());
-      const cut = document.createElement('div');
-      cut.className = 'cutin';
+    if (n >= 4 && faceSrc) showCutin(faceSrc, n >= 7 ? 'ばよえ〜ん!!' : n + 'れんさ!!');
+  }
+
+  function showCutin(faceSrc, text) {
+    $$('.cutin', fx).forEach((c) => c.remove());
+    const cut = document.createElement('div');
+    cut.className = 'cutin';
+    if (faceSrc) {
       const img = document.createElement('img');
       img.src = faceSrc;
       img.alt = '';
-      const txt = document.createElement('span');
-      txt.textContent = n >= 7 ? 'ばよえ〜ん!!' : n + 'れんさ!!';
-      cut.append(img, txt);
-      cut.addEventListener('animationend', () => cut.remove());
-      fx.appendChild(cut);
+      cut.appendChild(img);
     }
+    const txt = document.createElement('span');
+    txt.textContent = text;
+    cut.appendChild(txt);
+    cut.addEventListener('animationend', () => cut.remove());
+    fx.appendChild(cut);
   }
 
   // ---------------- 入力 ----------------

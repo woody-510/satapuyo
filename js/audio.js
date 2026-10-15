@@ -4,7 +4,12 @@ const Sound = (() => {
   let ctx = null, master, seGain, bgmGain, noiseBuf;
   const buffers = {};
   const loads = {};
-  const state = { se: true, bgm: true, volume: 0.8 };
+  const state = { se: true, bgm: true, voice: true, volume: 0.8 };
+  const voiceCfg = window.GAME_CONFIG.voices || {};
+  const BGM_LEVEL = 0.9;
+  let voiceGain = null;
+  let voiceNow = null; // { src, end }
+  const voiceLoads = {};
   const BGM_KEY = { title: 'bgmTitle', menu: 'bgmMenu', game: 'bgmGame' };
   const XF = 0.03; // ループのつなぎ目を重ねる秒数
   let bgm = null; // { name, key, stop() }
@@ -27,13 +32,17 @@ const Sound = (() => {
     seGain.gain.value = 0.9;
     seGain.connect(master);
     bgmGain = ctx.createGain();
-    bgmGain.gain.value = 0.9;
+    bgmGain.gain.value = BGM_LEVEL;
     bgmGain.connect(master);
     noiseBuf = ctx.createBuffer(1, ctx.sampleRate * 0.5, ctx.sampleRate);
     const d = noiseBuf.getChannelData(0);
     for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
     // 効果音は先に読んでおく。BGM は鳴らすときに読む
     for (const key of Object.keys(cfg)) if (!key.startsWith('bgm')) load(key);
+    voiceGain = ctx.createGain();
+    voiceGain.gain.value = 1;
+    voiceGain.connect(master);
+    Object.keys(voiceCfg).forEach(loadVoice);
     // タブを裏にしたら音を止める（電池にもやさしい）
     document.addEventListener('visibilitychange', () => {
       if (document.hidden) {
@@ -296,8 +305,51 @@ const Sound = (() => {
     bgm = null;
   }
 
+  // ---------------- ボイス ----------------
+  function loadVoice(name) {
+    const url = voiceCfg[name];
+    if (!url || !ctx) return Promise.resolve(null);
+    if (!voiceLoads[name]) {
+      voiceLoads[name] = fetch(url)
+        .then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status)))
+        .then((ab) => new Promise((ok, ng) => ctx.decodeAudioData(ab, ok, ng)))
+        .catch(() => {
+          console.warn('ボイスを読み込めませんでした:', url);
+          return null;
+        });
+    }
+    return voiceLoads[name];
+  }
+
+  const hasVoice = (name) => state.voice && !!voiceCfg[name];
+  const voicePlaying = () => !!(ctx && voiceNow && ctx.currentTime < voiceNow.end);
+
+  // 声を鳴らす。前の声は止めて、鳴っている間は BGM を少し下げる
+  function playVoice(name) {
+    if (!ctx || !hasVoice(name)) return;
+    loadVoice(name).then((buf) => {
+      if (!buf || !state.voice) return;
+      if (voiceNow) {
+        try { voiceNow.src.stop(); } catch {}
+      }
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      src.connect(voiceGain);
+      const t = ctx.currentTime + 0.01;
+      src.start(t);
+      voiceNow = { src, end: t + buf.duration };
+      const g = bgmGain.gain;
+      g.cancelScheduledValues(t);
+      g.setValueAtTime(g.value, t);
+      g.linearRampToValueAtTime(BGM_LEVEL * 0.45, t + 0.08);
+      g.setValueAtTime(BGM_LEVEL * 0.45, t + buf.duration);
+      g.linearRampToValueAtTime(BGM_LEVEL, t + buf.duration + 0.4);
+    });
+  }
+
   function apply(settings) {
     state.se = settings.se;
+    state.voice = settings.voice !== false;
     const bgmChanged = state.bgm !== settings.bgm;
     state.bgm = settings.bgm;
     state.volume = settings.volume;
@@ -305,5 +357,5 @@ const Sound = (() => {
     if (bgmChanged && bgm) playBgm(bgm.name, true);
   }
 
-  return { unlock, play, playBgm, stopBgm, apply };
+  return { unlock, play, playBgm, stopBgm, apply, playVoice, hasVoice, voicePlaying };
 })();

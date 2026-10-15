@@ -1,6 +1,7 @@
-# 元の写真（ゲームでは assets/ の加工済み画像を使う）
-images/
-images2/
+# 元の写真と声（ゲームでは assets/ の加工済みを使う）
+/images/
+/images2/
+/voice/
 
 .claude/
 __pycache__/

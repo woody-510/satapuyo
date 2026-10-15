@@ -50,6 +50,7 @@ python -m http.server 8000
 | `assets/ui/logo.png` | タイトルロゴ（透過PNG） | 1000x340 |
 | `assets/ui/icon.png` | ブラウザのタブのアイコン | 128x128 |
 | `assets/sound/bgm_title.mp3` / `bgm_menu.mp3` / `bgm_game.mp3` | BGM（タイトル / メニュー / ゲーム中） | 何秒でもOK |
+| `assets/voice/start.mp3` / `chain.mp3` / `cutin.mp3` / `end.mp3` | ボイス（開始 / 連鎖の終わり / ときどきカットイン / 終了） | 何秒でもOK |
 
 細かい設定は **`js/config.js`** にまとまっている。
 
@@ -88,6 +89,20 @@ node tools/music/make_bgm.mjs
 メロディ・リズムの刻み方・使うグルーヴや進行は `tools/music/make_bgm.mjs` の中に書いてある。
 最後に表示されるループ位置（`loopStart` / `loopEnd`）を `js/config.js` の `sounds` に書く。
 自分で作った mp3 にするなら `bgmGame: 'assets/sound/my_song.mp3'` のようにファイル名だけ書けば、ファイル全体をループする。
+
+## ボイス
+
+`voice` フォルダの声を、お尻の無音を切って音量をそろえてから `assets/voice/` に入れている（元のファイルは GitHub に上げない）。
+
+| いつ | ファイル（元） |
+| --- | --- |
+| ゲーム開始 | `start.mp3`（my f） |
+| 2れんさ以上が終わったとき | `chain.mp3`（again） |
+| ゲーム中にたまに（25〜50秒ごと・顔のカットインつき） | `cutin.mp3`（with y） |
+| ゲーム終了（ばたんきゅ〜・タイムアップ） | `end.mp3`（are you） |
+
+声が鳴っている間は BGM を少し下げる。声どうしは重ならない（あとから鳴った方に切りかわる）。
+タイミングは `js/config.js` の `voices`・`voiceChainMin`・`voiceCutinSeconds` で変えられる。「せってい」の「ボイス」で OFF にもできる。
 
 ### 元の写真から作り直す
 
