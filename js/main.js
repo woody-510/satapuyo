@@ -74,6 +74,7 @@
     img.src = CFG.images.logo;
   });
   $('#field-wrap').style.backgroundImage = `url("${CFG.images.fieldBg}")`;
+  $('#opp-field-wrap').style.backgroundImage = `url("${CFG.images.fieldBg}")`;
   $('#ta-seconds').textContent = CFG.timeAttackSeconds;
 
   // ---------------- 背景（ゆっくり動いて切りかわる） ----------------
@@ -515,13 +516,14 @@
     const padH = pad.offsetHeight ? pad.offsetHeight + 10 : 0;
     const availH = window.innerHeight - 16 - padH - 8;
     const availW = window.innerWidth - 16 - 8;
-    let cs, wide = false;
+    let cs, wide = false, wideOpp = 0;
     if (cpuGame) {
-      // 対戦：横に余裕があれば相手を右どなりに大きめに、なければ右の列に小さく
+      // 対戦：横に余裕があれば 左に自分・右に相手（同じ大きさまで）、なければ相手は右の列に小さく
       const narrow = Math.min(availH / 13, availW / 9.45, 64);
-      const wideCs = Math.min(availH / 13, availW / 13.4, 64);
+      const wideCs = Math.min(availH / 13, availW / 13, 64);
       wide = wideCs >= narrow * 0.9;
       cs = wide ? wideCs : narrow;
+      if (wide) wideOpp = (c) => Math.min(c, Math.floor((availW - c * 9.4 - 24) / 6));
     } else {
       cs = Math.min(availH / 12, availW / 8.9, 64);
     }
@@ -532,7 +534,7 @@
       gameScreen.style.setProperty('--cs', c + 'px');
       game.resize(c);
       if (cpuGame) {
-        const oc = wide ? Math.floor(c * 0.62) : Math.floor((side.clientWidth - 6) / 6);
+        const oc = wide ? wideOpp(c) : Math.floor((side.clientWidth - 6) / 6);
         oppBox.style.setProperty('--cs', oc + 'px');
         cpuGame.resize(oc);
       }

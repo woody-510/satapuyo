@@ -243,8 +243,12 @@ h2 {
 /* スマホ縦：相手の盤面を右の列に入れるので、列を広げて「れんしょう」は省く（結果画面で見られる） */
 #screen-game[data-playing='versus']:not(.wide) .side { width: calc(var(--cs) * 3); }
 #screen-game:not(.wide) .vs-streak { display: none; }
-.opp-box { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.opp-box { display: flex; flex-direction: column; align-items: center; gap: 4px; }
 #screen-game.wide .opp-box { margin-left: calc(var(--cs) * 0.2); }
+/* 横ならびのときは、名前を盤面の下に出して 自分と相手の盤面の高さをそろえる */
+#screen-game.wide .opp-head { order: 3; width: auto; max-width: 100%; padding: 4px 12px; font-size: 16px; }
+#screen-game.wide .opp-head img { width: 30px; height: 30px; }
+#screen-game.wide .opp-field-wrap { border-width: 4px; border-radius: 14px; box-shadow: 0 8px 0 rgba(0, 0, 0, 0.25), 0 0 30px rgba(0, 0, 0, 0.35); }
 .opp-head {
   display: flex;
   align-items: center;
