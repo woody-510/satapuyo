@@ -59,6 +59,8 @@ window.GAME_CONFIG = {
     pop: null,      // 連鎖のたびに少しずつ音程が上がる（内蔵音のみ）
     allClear: null,
     gameOver: null,
+    ojama: null,    // おじゃまぷよが降ってきたとき
+    win: null,      // 対戦で勝ったとき
     select: null,
     decide: null,
   },
@@ -75,6 +77,19 @@ window.GAME_CONFIG = {
 
   // タイムアタックの制限時間（秒）
   timeAttackSeconds: 120,
+
+  // CPU対戦（ルールはぷよぷよ通）
+  versus: {
+    colors: 4,        // ぷよの種類（本家は4）
+    targetPoint: 70,  // 連鎖の点数いくつでおじゃま1個か（レート）
+    marginTime: 96,   // この秒数をすぎると、16秒ごとにレートが下がっておじゃまが増える
+    // 相手キャラ。face は faces の何番目か（1 から）。あとで名前や顔を差し替えてOK
+    cpu: {
+      weak: { name: 'さたろう', face: 16 },
+      normal: { name: 'さたろう', face: 11 },
+      strong: { name: 'さたろう', face: 8 },
+    },
+  },
 
   // エンディング：とことんモードで minScore 点以上とってゲームオーバーになると流れる（一度見たらメニューから見返せる）
   // CAST には上の faces の name・role・comment が順に出る

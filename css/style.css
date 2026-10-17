@@ -12,7 +12,8 @@
   --cs: 40px;
 }
 
-* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+/* スマホでダブルタップ・ピンチしても画面が拡大しないように（スクロールはできる） */
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; touch-action: pan-x pan-y; }
 
 /* hidden を付けたものは、ほかの display 指定があっても必ず消す（解放前のエンディングボタンなど） */
 [hidden] { display: none !important; }
@@ -27,6 +28,9 @@ html, body {
   font-weight: 800;
   -webkit-user-select: none;
   user-select: none;
+  -webkit-touch-callout: none; /* 長押しで画像の保存メニューが出ないように */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 button { font: inherit; color: inherit; cursor: pointer; }
@@ -58,6 +62,8 @@ body[data-screen='menu'] .bg-tint,
 body[data-screen='ranking'] .bg-tint,
 body[data-screen='gallery'] .bg-tint,
 body[data-screen='settings'] .bg-tint,
+body[data-screen='allclear'] .bg-tint,
+body[data-screen='versus'] .bg-tint,
 body[data-screen='howto'] .bg-tint { background: linear-gradient(180deg, rgba(110, 170, 255, 0.35), rgba(170, 110, 255, 0.4)); }
 body[data-screen='game'] .bg-tint,
 body[data-screen='result'] .bg-tint { background: linear-gradient(180deg, rgba(30, 18, 70, 0.6), rgba(16, 36, 84, 0.72)); }
@@ -215,7 +221,7 @@ h2 {
 #field { display: block; }
 .fx-layer { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 
-.side { width: calc(var(--cs) * 2.6); display: flex; flex-direction: column; gap: calc(var(--cs) * 0.2); }
+.side { width: calc(var(--cs) * 2.6); min-width: 84px; display: flex; flex-direction: column; gap: calc(var(--cs) * 0.2); }
 .side-box {
   background: var(--panel);
   border: 3px solid #fff;
@@ -230,6 +236,72 @@ h2 {
 .side-value small { font-size: 0.55em; color: var(--ink-soft); }
 .side-value.score { font-size: max(13px, calc(var(--cs) * 0.4)); word-break: break-all; }
 .side-value.warn { color: var(--c1); animation: blink 0.5s infinite; }
+
+.field-col { display: flex; flex-direction: column; gap: 4px; }
+
+/* ---------- 対戦 ---------- */
+/* スマホ縦：相手の盤面を右の列に入れるので、列を広げて「れんしょう」は省く（結果画面で見られる） */
+#screen-game[data-playing='versus']:not(.wide) .side { width: calc(var(--cs) * 3); }
+#screen-game:not(.wide) .vs-streak { display: none; }
+.opp-box { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+#screen-game.wide .opp-box { margin-left: calc(var(--cs) * 0.2); }
+.opp-head {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  background: var(--panel);
+  border: 2px solid #fff;
+  border-radius: 10px;
+  font-size: max(11px, calc(var(--cs) * 0.5));
+  white-space: nowrap;
+}
+.opp-head img {
+  width: max(18px, calc(var(--cs) * 1));
+  height: max(18px, calc(var(--cs) * 1));
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.opp-head span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; text-align: center; }
+.opp-head small { flex-shrink: 0; color: var(--ink-soft); font-size: 0.85em; }
+.opp-field-wrap { border-width: 3px; border-radius: 8px; box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25); }
+
+/* おじゃまぷよの予告（小=1, 大=6, 岩=30, 星=180, 月=360, 王冠=720） */
+.ojama-bar {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  height: max(10px, calc(var(--cs) * 0.7));
+}
+.oj {
+  display: inline-block;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  background: #c9c9d3 var(--oj-img, none) center / cover no-repeat;
+  filter: grayscale(1);
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+}
+.oj.small { width: calc(var(--cs) * 0.42); height: calc(var(--cs) * 0.42); border-width: 1px; }
+.oj.big { width: calc(var(--cs) * 0.66); height: calc(var(--cs) * 0.66); }
+.oj.rock { width: calc(var(--cs) * 0.66); height: calc(var(--cs) * 0.66); border-radius: 26%; background: #6f6f7c; }
+.oj.star, .oj.moon, .oj.crown {
+  width: auto;
+  height: auto;
+  border: none;
+  background: none;
+  box-shadow: none;
+  filter: none;
+  font-size: calc(var(--cs) * 0.62);
+  line-height: 1;
+}
+.oj.star::after { content: '⭐'; }
+.oj.moon::after { content: '🌙'; }
+.oj.crown::after { content: '👑'; }
 
 .pause-btn {
   align-self: center;
@@ -292,6 +364,8 @@ h2 {
 .banner.go { color: var(--c2); animation-duration: 0.7s; }
 .banner.allclear { color: var(--c4); font-size: calc(var(--cs) * 1.05); animation-duration: 1.8s; }
 .banner.over { color: var(--c1); animation: banner-stay 2s ease-out forwards; }
+.banner.over.clear { color: var(--c4); }
+.banner.over.win { color: var(--c2); }
 @keyframes banner {
   0% { transform: translate(-50%, -50%) scale(0.2); opacity: 0; }
   20% { transform: translate(-50%, -50%) scale(1.15); opacity: 1; }
@@ -381,6 +455,7 @@ h2 {
 .result-mode { color: var(--ink-soft); font-size: 15px; margin-top: 6px; }
 .result-score { font-size: 52px; font-weight: 900; color: var(--c1); line-height: 1.1; margin: 4px 0 10px; font-variant-numeric: tabular-nums; }
 .result-score small { font-size: 18px; color: var(--ink-soft); margin-left: 4px; }
+.result-score.text { font-size: 36px; }
 .result-stats { display: flex; gap: 12px; margin-bottom: 16px; }
 .result-stats div {
   flex: 1;
@@ -416,7 +491,9 @@ h2 {
 .tabs { display: flex; gap: 8px; margin-bottom: 12px; }
 .tabs button {
   flex: 1;
-  padding: 10px;
+  min-width: 0;
+  padding: 10px 2px;
+  white-space: nowrap;
   border: 3px solid var(--c3);
   border-radius: 14px;
   background: #fff;
@@ -424,6 +501,24 @@ h2 {
   font-weight: 900;
 }
 .tabs button.active { background: var(--c3); color: #fff; }
+.rank-sub { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 12px; }
+.rank-list .pts.small { font-size: 16px; }
+.rank-list .rank-face { width: 34px; height: 34px; border-radius: 50%; object-fit: cover; border: 2px solid var(--c3); display: block; margin: 0 auto; }
+
+/* CPU たいせんの えらぶボタン（左に相手の顔） */
+.vs-btn { position: relative; padding-left: 64px; padding-right: 20px; }
+.vs-face {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  width: 44px;
+  height: 44px;
+  margin-top: -22px;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  object-fit: cover;
+  background: #fff;
+}
 .rank-list { list-style: none; margin: 0 0 16px; padding: 0; text-align: left; }
 .rank-list li {
   display: grid;
@@ -493,7 +588,7 @@ h2 {
 .seg button + button { border-left: 2px solid var(--c5); }
 .seg button.active { background: var(--c5); color: #fff; }
 .seg button:focus-visible { outline: 3px solid var(--ink); outline-offset: -3px; }
-input[type='range'] { width: 50%; accent-color: var(--c5); }
+input[type='range'] { width: 50%; accent-color: var(--c5); touch-action: none; }
 
 /* ---------- あそびかた ---------- */
 .howto { text-align: left; }

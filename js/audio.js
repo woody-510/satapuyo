@@ -148,6 +148,8 @@ const Sound = (() => {
     },
     allClear: () => [0, 4, 7, 12, 16, 19, 24].forEach((n, i) => tone(523 * Math.pow(2, n / 12), 0.18, { type: 'triangle', vol: 0.2, delay: i * 0.07 })),
     gameOver: () => [0, -3, -6, -10, -13].forEach((n, i) => tone(392 * Math.pow(2, n / 12), 0.3, { type: 'sawtooth', vol: 0.08, delay: i * 0.18 })),
+    ojama: () => { tone(110, 0.18, { type: 'sine', vol: 0.35, slide: 55 }); noise(0.14, { vol: 0.18, freq: 300 }); },
+    win: () => [0, 4, 7, 12, 7, 12, 16, 19, 24].forEach((n, i) => tone(523 * Math.pow(2, n / 12), i === 8 ? 0.5 : 0.14, { type: 'triangle', vol: 0.2, delay: i * 0.1 })),
     select: () => tone(660, 0.04, { vol: 0.06 }),
     decide: () => { tone(880, 0.06, { vol: 0.08 }); tone(1320, 0.1, { vol: 0.08, delay: 0.06 }); },
     count: () => tone(660, 0.12, { type: 'triangle', vol: 0.18 }),

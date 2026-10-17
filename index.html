@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=16">
+  <link rel="stylesheet" href="css/style.css?v=17">
 </head>
 <body>
   <div id="bg" aria-hidden="true">
@@ -43,6 +43,14 @@
           <span class="menu-title">タイムアタック</span>
           <span class="menu-sub"><span id="ta-seconds">120</span>びょうで スコアかせぎ / ベスト <b id="best-time">0</b></span>
         </button>
+        <button class="menu-btn c6" data-go="allclear">
+          <span class="menu-title">ぜんけしアタック</span>
+          <span class="menu-sub">ぜんぶ けすまでの タイムを きそう</span>
+        </button>
+        <button class="menu-btn c5" data-go="versus">
+          <span class="menu-title">CPU たいせん</span>
+          <span class="menu-sub">さたろうと しょうぶ / さいこう <b id="best-versus">0</b>れんしょう</span>
+        </button>
         <div class="menu-row">
           <button class="menu-btn c3 half" data-go="ranking"><span class="menu-title">ランキング</span></button>
           <button class="menu-btn c4 half" data-go="gallery"><span class="menu-title">ずかん</span></button>
@@ -64,33 +72,100 @@
     </div>
   </section>
 
+  <!-- ぜんけしアタック -->
+  <section class="screen" id="screen-allclear" data-back="menu">
+    <div class="panel">
+      <h2>ぜんけしアタック</h2>
+      <p class="hint">ぷよを ぜんぶ けすまでの タイムを きそう！<br>つみあがったら しっぱい。</p>
+      <div class="setting">
+        <span class="setting-name">ぷよの しゅるい</span>
+        <div class="seg" data-key="colors">
+          <button data-val="3">3</button><button data-val="4">4</button><button data-val="5">5</button>
+        </div>
+      </div>
+      <button class="menu-btn c6" data-mode="allclear" data-preset="1">
+        <span class="menu-title">はいち あり</span>
+        <span class="menu-sub">さいしょから ぷよが おいてある / ベスト <b id="best-ac-pre">--</b></span>
+      </button>
+      <button class="menu-btn c2" data-mode="allclear" data-preset="0">
+        <span class="menu-title">はいち なし</span>
+        <span class="menu-sub">からっぽから はじめる / ベスト <b id="best-ac-none">--</b></span>
+      </button>
+      <button class="menu-btn c3" data-go="menu"><span class="menu-title">もどる</span></button>
+    </div>
+  </section>
+
+  <!-- CPU たいせん -->
+  <section class="screen" id="screen-versus" data-back="menu">
+    <div class="panel">
+      <h2>CPU たいせん</h2>
+      <p class="hint">れんさで おじゃまぷよを おくりあう。<br>さきに つみあがったほうが まけ。</p>
+      <button class="menu-btn c2 vs-btn" data-mode="versus" data-level="weak">
+        <img class="vs-face" alt="">
+        <span class="menu-title">よわい</span>
+        <span class="menu-sub vs-rec"></span>
+      </button>
+      <button class="menu-btn c4 vs-btn" data-mode="versus" data-level="normal">
+        <img class="vs-face" alt="">
+        <span class="menu-title">ふつう</span>
+        <span class="menu-sub vs-rec"></span>
+      </button>
+      <button class="menu-btn c1 vs-btn" data-mode="versus" data-level="strong">
+        <img class="vs-face" alt="">
+        <span class="menu-title">つよい</span>
+        <span class="menu-sub vs-rec"></span>
+      </button>
+      <button class="menu-btn c3" data-go="menu"><span class="menu-title">もどる</span></button>
+    </div>
+  </section>
+
   <!-- ゲーム -->
   <section class="screen" id="screen-game">
     <div class="game-layout" id="game-layout">
-      <div class="field-wrap" id="field-wrap">
-        <canvas id="field"></canvas>
-        <div class="fx-layer" id="fx-layer"></div>
+      <div class="field-col">
+        <div class="ojama-bar" id="ojama-me" data-modes="versus"></div>
+        <div class="field-wrap" id="field-wrap">
+          <canvas id="field"></canvas>
+          <div class="fx-layer" id="fx-layer"></div>
+        </div>
       </div>
-      <aside class="side">
+      <aside class="side" id="side">
         <div class="side-box next-box">
           <div class="side-label">NEXT</div>
           <canvas id="next"></canvas>
         </div>
-        <div class="side-box">
+        <!-- 対戦相手（スマホでは右の列に小さく、横長の画面では右どなりに） -->
+        <div class="opp-box" id="opp-box" data-modes="versus">
+          <div class="opp-head"><img id="opp-face" alt=""><span id="opp-name">さたろう</span><small id="opp-level">ふつう</small></div>
+          <div class="ojama-bar" id="ojama-cpu"></div>
+          <div class="field-wrap opp-field-wrap" id="opp-field-wrap">
+            <canvas id="opp-field"></canvas>
+            <div class="fx-layer" id="opp-fx"></div>
+          </div>
+        </div>
+        <div class="side-box" data-modes="endless time">
           <div class="side-label">SCORE</div>
           <div class="side-value score" id="hud-score">0</div>
         </div>
-        <div class="side-box">
+        <div class="side-box" data-modes="endless time allclear versus">
           <div class="side-label">れんさ</div>
           <div class="side-value"><span id="hud-chain">0</span><small> / MAX <span id="hud-max">0</span></small></div>
         </div>
-        <div class="side-box">
+        <div class="side-box" data-modes="endless time allclear">
           <div class="side-label" id="hud-time-label">TIME</div>
           <div class="side-value" id="hud-time">0:00</div>
         </div>
-        <div class="side-box">
+        <div class="side-box" data-modes="endless time">
           <div class="side-label">LEVEL</div>
           <div class="side-value" id="hud-level">1</div>
+        </div>
+        <div class="side-box" data-modes="allclear">
+          <div class="side-label">のこり ぷよ</div>
+          <div class="side-value" id="hud-left">0</div>
+        </div>
+        <div class="side-box vs-streak" data-modes="versus">
+          <div class="side-label">れんしょう</div>
+          <div class="side-value" id="hud-streak">0</div>
         </div>
         <button class="pause-btn" id="btn-pause" aria-label="ポーズ">II</button>
       </aside>
@@ -120,10 +195,10 @@
       <h2 id="result-title">けっか</h2>
       <img class="result-face" id="result-face" alt="">
       <div class="result-mode" id="result-mode"></div>
-      <div class="result-score"><span id="result-score">0</span><small>てん</small></div>
+      <div class="result-score"><span id="result-score">0</span><small id="result-unit">てん</small></div>
       <div class="result-stats">
-        <div>さいだい れんさ<b id="result-chain">0</b></div>
-        <div>おとした数<b id="result-pieces">0</b></div>
+        <div><span id="result-l1">さいだい れんさ</span><b id="result-chain">0</b></div>
+        <div><span id="result-l2">おとした数</span><b id="result-pieces">0</b></div>
       </div>
       <div class="rankin" id="rankin" hidden>
         <p class="rankin-msg"><b id="rankin-pos">1</b>い ランクイン！なまえをいれてね</p>
@@ -133,9 +208,10 @@
         </form>
       </div>
       <div class="menu-row">
-        <button class="menu-btn c2 half" id="btn-retry"><span class="menu-title">もういちど</span></button>
+        <button class="menu-btn c2 half" id="btn-retry"><span class="menu-title" id="retry-label">もういちど</span></button>
         <button class="menu-btn c3 half" data-go="menu"><span class="menu-title">メニューへ</span></button>
       </div>
+      <button class="link-btn" id="btn-retry-new" hidden>べつの はいちで あそぶ</button>
     </div>
   </section>
 
@@ -145,7 +221,17 @@
       <h2>ランキング</h2>
       <div class="tabs" id="rank-tabs">
         <button data-tab="endless" class="active">とことん</button>
-        <button data-tab="time">タイムアタック</button>
+        <button data-tab="time">タイム</button>
+        <button data-tab="allclear">ぜんけし</button>
+        <button data-tab="versus">たいせん</button>
+      </div>
+      <div class="rank-sub" id="rank-sub" hidden>
+        <div class="seg" data-sub="preset">
+          <button data-val="pre">はいち あり</button><button data-val="none">はいち なし</button>
+        </div>
+        <div class="seg" data-sub="n">
+          <button data-val="3">3</button><button data-val="4">4</button><button data-val="5">5</button>
+        </div>
       </div>
       <ol class="rank-list" id="rank-list"></ol>
       <div class="menu-row">
@@ -241,6 +327,8 @@
         きえたあとに おちてきたぷよが また4つそろうと <b>れんさ</b>。れんさが多いほど 点数がドカンとふえる。</p>
       <p>左から3れつめの いちばん上（<span class="x-mark">✕</span>じるし）まで つみあがったら ゲームオーバー。</p>
       <p>とことんモードで <b>100万点</b> 以上とって ゲームオーバーになると……？</p>
+      <p><b>ぜんけしアタック</b>：フィールドの ぷよを ぜんぶ けすまでの タイムを きそう。「はいち あり」は さいしょから ぷよが おいてある。つみあがったら しっぱい。</p>
+      <p><b>CPU たいせん</b>：れんさすると あいてに <b>おじゃまぷよ</b>（白黒の さたろう）が ふる。おじゃまは となりで ぷよが きえると いっしょに きえる。あいてから くる よこく（フィールドの上のマーク）は、じぶんの れんさで けせる（そうさい）。さきに つみあがったほうが まけ。</p>
       <table class="keys">
         <tr><th>うごかす</th><td><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd></td></tr>
         <tr><th>はやく おとす</th><td><kbd>↓</kbd> / <kbd>S</kbd></td></tr>
@@ -264,10 +352,13 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=16"></script>
-  <script src="js/audio.js?v=16"></script>
-  <script src="js/game.js?v=16"></script>
-  <script src="js/ending.js?v=16"></script>
-  <script src="js/main.js?v=16"></script>
+  <script src="js/config.js?v=17"></script>
+  <script src="js/audio.js?v=17"></script>
+  <script src="js/game.js?v=17"></script>
+  <script src="js/presets.js?v=17"></script>
+  <script src="js/cpu.js?v=17"></script>
+  <script src="js/versus.js?v=17"></script>
+  <script src="js/ending.js?v=17"></script>
+  <script src="js/main.js?v=17"></script>
 </body>
 </html>
