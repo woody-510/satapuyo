@@ -5,7 +5,7 @@
 // しくみ：このフォルダのページ（ending_video.html）を Edge で画面なしに開き、ゲームと同じ描き方で
 // 1コマずつ描かせて受けとり、ffmpeg で動画にする。音は music/ のテーマ7（なければ assets/sound/bgm_ending.mp3）。
 // 必要なもの：Node.js 18 以上 / ffmpeg / Microsoft Edge（ネットにつながっていること。文字のフォントを読むため）
-// できあがり：music/フル尺/ と VSTプラグイン/BGM/フル尺/ に「（テーマ7 の名前）エンドロール.mp4」
+// できあがり：puyo フォルダの「エンディング動画.mp4」（GitHub には上げない）と、VSTプラグイン/BGM/フル尺/ の「（テーマ7 の名前）エンドロール.mp4」
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -17,7 +17,8 @@ import vm from 'node:vm';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 const PLUGINS = process.env.WOODY_PLUGINS || path.join(os.homedir(), 'Desktop', 'VSTプラグイン');
 const NAME = 'テーマ7 100万点の空（エンディング・J-POP）';
-const OUT_DIRS = [path.join(ROOT, 'music', 'フル尺'), path.join(PLUGINS, 'BGM', 'フル尺')];
+const OUT = path.join(ROOT, 'エンディング動画.mp4');
+const COPY = path.join(PLUGINS, 'BGM', 'フル尺', `${NAME}エンドロール.mp4`);
 const W = 1920, H = 1080, FPS = 30;
 const EDGE = [
   process.env.EDGE,
@@ -44,8 +45,8 @@ const voiceKey = CFG.ending && CFG.ending.endVoice;
 const voice = voiceKey && CFG.voices && CFG.voices[voiceKey] ? path.join(ROOT, CFG.voices[voiceKey]) : null;
 const total = process.env.TEST_SECONDS ? +process.env.TEST_SECONDS : duration + tail; // TEST_SECONDS は確認用
 const frames = Math.round(total * FPS);
-for (const d of OUT_DIRS) fs.mkdirSync(d, { recursive: true });
-const out = path.join(OUT_DIRS[0], `${NAME}エンドロール.mp4`);
+fs.mkdirSync(path.dirname(COPY), { recursive: true });
+const out = OUT;
 console.log(`エンドロールを書き出します：${total.toFixed(1)} 秒・${frames} コマ（${W}x${H}・${FPS}fps）${voice ? '・最後に ' + path.basename(voice) : ''}`);
 
 // 音：曲のうしろに無音をつけて全体の長さにし、config の endVoiceAt の時刻にボイスを重ねる
@@ -126,8 +127,8 @@ ff.on('exit', (code) => {
     console.error('ffmpeg が失敗しました');
     process.exit(1);
   }
-  for (const d of OUT_DIRS.slice(1)) fs.copyFileSync(out, path.join(d, path.basename(out)));
+  fs.copyFileSync(out, COPY);
   const mb = (fs.statSync(out).size / 1024 / 1024).toFixed(1);
   console.log(`  できました：${out}（${mb} MB・${((Date.now() - t0) / 1000).toFixed(0)} 秒）`);
-  console.log('  コピー先：' + OUT_DIRS.slice(1).join(' / '));
+  console.log('  コピー先：' + COPY);
 });

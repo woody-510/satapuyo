@@ -212,7 +212,7 @@ node tools/music/make_bgm.mjs
 node tools/video/make_ending_video.mjs
 ```
 
-→ `music\フル尺\` と `VSTプラグイン\BGM\フル尺\` に「テーマ7 100万点の空（エンディング・J-POP）エンドロール.mp4」ができる。
+→ `puyo\エンディング動画.mp4`（GitHub には上げない）と、`VSTプラグイン\BGM\フル尺\` の「テーマ7 100万点の空（エンディング・J-POP）エンドロール.mp4」ができる。
 
 ## ボイス
 

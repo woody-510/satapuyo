@@ -13,3 +13,6 @@ assets/sound/*.wav
 
 # 保存用の BGM（wav が大きいので GitHub には上げない）
 /music/
+
+# エンディング動画（大きいので GitHub には上げない）
+/*.mp4
