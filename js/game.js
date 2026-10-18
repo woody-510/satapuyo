@@ -41,6 +41,7 @@ class PuyoGame {
     this.quiet = quiet;
     this.ojama = { ready: 0, wait: 0 }; // ready: 次に降る / wait: 相手の連鎖が終わったら ready になる
     this.dropped = false;
+    this.allClears = 0; // ぜんけしした回数（じっせき用）
 
     this.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     if (initialGrid) {
@@ -444,6 +445,7 @@ class PuyoGame {
       return;
     }
     const cleared = this.chain > 0 && this.grid.every((row) => row.every((c) => !c));
+    if (cleared) this.allClears++;
     if (cleared && this.mode !== 'allclear') {
       this.score += 2100;
       this.sfx('allClear');
@@ -565,7 +567,7 @@ class PuyoGame {
           this.done = true;
           this.cb.end({
             score: this.score, maxChain: this.maxChain, pieces: this.pieces,
-            reason: this.reason, popStats: this.popStats, time: this.elapsed,
+            reason: this.reason, popStats: this.popStats, time: this.elapsed, allClears: this.allClears,
           });
         }
         break;

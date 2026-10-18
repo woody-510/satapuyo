@@ -1,0 +1,31 @@
+// じっせき（トロフィー）。かいじょした日時は この端末のブラウザ（localStorage の satapuyo.achievements）に保存
+//   test(e, s) の e は 終わったゲームの記録、s は これまでの合計（main.js の achievementState を見てね）
+//   e = { mode, score, maxChain, reason, time, pieces, allClears, result, level, sent, kumiteWins, preset, n }
+const ACHIEVEMENTS = [
+  { id: 'chain2', name: 'はじめての れんさ', desc: '2れんさ する', test: (e) => e.maxChain >= 2 },
+  { id: 'chain4', name: 'れんさの め', desc: '4れんさ する', test: (e) => e.maxChain >= 4 },
+  { id: 'chain7', name: 'ばよえ〜ん', desc: '7れんさ する', test: (e) => e.maxChain >= 7 },
+  { id: 'chain10', name: 'れんさの たつじん', desc: '10れんさ する', test: (e) => e.maxChain >= 10 },
+  { id: 'allclear', name: 'ぜんけし', desc: 'どこかで ぜんけし する', test: (e) => e.allClears > 0 || (e.mode === 'allclear' && e.reason === 'clear') },
+  { id: 'endless100k', name: 'とことん 10まん', desc: 'とことんモードで 10まんてん', test: (e) => e.mode === 'endless' && e.score >= 100000 },
+  { id: 'endless500k', name: 'とことん 50まん', desc: 'とことんモードで 50まんてん', test: (e) => e.mode === 'endless' && e.score >= 500000 },
+  { id: 'endless1m', name: '100まんてんの そら', desc: 'とことんモードで 100まんてん', test: (e) => e.mode === 'endless' && e.score >= 1000000 },
+  { id: 'time50k', name: 'タイムアタック 5まん', desc: 'タイムアタックで 5まんてん', test: (e) => e.mode === 'time' && e.score >= 50000 },
+  { id: 'time200k', name: 'タイムアタック 20まん', desc: 'タイムアタックで 20まんてん', test: (e) => e.mode === 'time' && e.score >= 200000 },
+  { id: 'acClear', name: 'ぜんけし せいこう', desc: 'ぜんけしアタックを クリア', test: (e) => e.mode === 'allclear' && e.reason === 'clear' },
+  { id: 'acFast', name: 'はやわざ', desc: 'ぜんけしアタックを 30びょう いないで クリア', test: (e) => e.mode === 'allclear' && e.reason === 'clear' && e.time <= 30 },
+  { id: 'acMaster', name: 'ぜんけし マスター', desc: '「はいち あり・5しゅるい」を クリア', test: (e) => e.mode === 'allclear' && e.reason === 'clear' && e.preset && e.n === 5 },
+  { id: 'vsWeak', name: 'はじめての しょうり', desc: 'CPU たいせんで よわいに かつ', test: (e) => e.mode === 'versus' && e.result === 'win' && e.level === 'weak' },
+  { id: 'vsNormal', name: 'いっちょまえ', desc: 'CPU たいせんで ふつうに かつ', test: (e) => e.mode === 'versus' && e.result === 'win' && e.level === 'normal' },
+  { id: 'vsStrong', name: 'つよい やつに かった', desc: 'CPU たいせんで つよいに かつ', test: (e) => e.mode === 'versus' && e.result === 'win' && e.level === 'strong' },
+  { id: 'vsStreak5', name: 'むてき', desc: 'つよいに 5れんしょう', test: (e, s) => (s.versus.strong?.streak || 0) >= 5 },
+  { id: 'kumite3', name: 'くみて 3にんぬき', desc: 'くみてで 3にん かちぬく', test: (e) => e.kumiteWins >= 3 },
+  { id: 'kumite10', name: 'くみて 10にんぬき', desc: 'くみてで 10にん かちぬく', test: (e) => e.kumiteWins >= 10 },
+  { id: 'kumite20', name: 'くみて 20にんぬき', desc: 'くみてで 20にん かちぬく', test: (e) => e.kumiteWins >= 20 },
+  { id: 'ojama100', name: 'おじゃま たいほう', desc: '1しあいで おじゃまを 100こ おくる', test: (e) => (e.sent || 0) >= 100 },
+  { id: 'pops1000', name: 'けした数 1000', desc: 'つうさんで 1000こ けす', test: (e, s) => s.totalPops >= 1000 },
+  { id: 'pops10000', name: 'けした数 1まん', desc: 'つうさんで 10000こ けす', test: (e, s) => s.totalPops >= 10000 },
+  { id: 'allFaces', name: 'ずかん コンプリート', desc: 'ぜんいんの さたろうを 1かい いじょう けす', test: (e, s) => s.facesPopped >= s.facesTotal },
+  { id: 'plays50', name: 'じょうれんさん', desc: '50かい あそぶ', test: (e, s) => s.plays >= 50 },
+  { id: 'ending', name: 'その さきで みたもの', desc: 'エンディングを みる', test: (e, s) => s.endingSeen },
+];

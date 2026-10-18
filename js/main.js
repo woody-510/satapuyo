@@ -48,6 +48,24 @@
     const f = CFG.faces[(p.face || 1) - 1] || CFG.faces[0];
     return { name: p.name || 'さたろう', src: f.src };
   }
+  // くみて：何人目の相手か（1から）で顔と名前がきまる
+  function kumiteProfile(stage) {
+    const order = (CFG.kumite && CFG.kumite.order) || CFG.faces.map((_, i) => i + 1);
+    const f = CFG.faces[(order[(stage - 1) % order.length] || 1) - 1] || CFG.faces[0];
+    return { name: f.name, src: f.src };
+  }
+  const kumiteRec = Object.assign({ best: 0, runs: 0 }, store.get('kumite', {}));
+  const achieved = store.get('achievements', {}); // じっせきID -> かいじょした日時
+
+  // プレイヤー（オンラインランキング用）。secret は この端末だけが知っている合言葉、publicId は ランキングで自分の行を見つける用
+  const uuid = () => (crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = Math.floor(Math.random() * 16);
+    return (c === 'x' ? r : (r & 3) | 8).toString(16);
+  }));
+  const player = store.get('player', null) || { secret: uuid(), publicId: uuid() };
+  store.set('player', player);
+  const playerName = () => store.get('name', '') || 'ななし';
+  Online.flush(); // 前に送れなかった記録があれば送る
   const saveSettings = () => {
     store.set('settings', settings);
     Sound.apply({ se: settings.se, bgm: settings.bgm, voice: settings.voice, volume: settings.volume / 100 });
@@ -158,9 +176,11 @@
     if (name === 'title') renderTitleFaces();
     if (name === 'allclear') renderAllclearSelect();
     if (name === 'versus') renderVersusSelect();
+    if (name === 'achievements') renderAchievements();
     if (audioReady && bgmFor(name)) Sound.playBgm(bgmFor(name));
     if (name !== 'game') stopLoop();
     focusFirst();
+    if (name === 'menu') askNameIfNeeded();
   }
 
   function focusFirst() {
@@ -192,7 +212,9 @@
     if (mode) {
       Sound.play('decide');
       const d = mode.dataset;
-      const opts = d.mode === 'allclear' ? { preset: d.preset === '1', n: settings.colors } : d.mode === 'versus' ? { level: d.level } : {};
+      const opts = d.mode === 'allclear' ? { preset: d.preset === '1', n: settings.colors }
+        : d.mode === 'versus' ? { level: d.level }
+        : d.mode === 'kumite' ? { stage: 1, wins: 0, maxChain: 0 } : {};
       startGame(d.mode, opts);
     }
   });
@@ -241,8 +263,25 @@
     $('#best-endless').textContent = (ranking.endless[0]?.score || 0).toLocaleString();
     $('#best-time').textContent = (ranking.time[0]?.score || 0).toLocaleString();
     $('#best-versus').textContent = Math.max(0, ...LEVELS.map((lv) => versusRec[lv]?.best || 0));
+    $('#best-kumite').textContent = kumiteRec.best;
+    $('#ach-count').textContent = Object.keys(achieved).length;
+    $('#ach-total').textContent = ACHIEVEMENTS.length;
     $('#btn-ending').hidden = !store.get('endingUnlocked', false);
   }
+
+  // はじめて開いたときだけ名前を聞く（あとから せってい で変えられる）
+  function askNameIfNeeded() {
+    if (store.get('name', '')) return;
+    $('#name-modal').hidden = false;
+    $('#first-name').focus();
+  }
+  $('#first-name-form').addEventListener('submit', (e) => {
+    e.preventDefault();
+    store.set('name', $('#first-name').value.trim().slice(0, 10) || 'ななし');
+    $('#name-modal').hidden = true;
+    Sound.play('decide');
+    focusFirst();
+  });
 
   // ぜんけしアタックの えらぶ画面
   function renderAllclearSelect() {
@@ -266,6 +305,11 @@
   // ---------------- エンディング ----------------
   const logoImg = Object.assign(new Image(), { src: CFG.images.logo });
   function playEnding(onDone) {
+    if (!stats.endingSeen) {
+      stats.endingSeen = true;
+      store.set('stats', stats);
+      checkAchievements({ mode: 'ending' });
+    }
     show('ending');
     Ending.play({ canvas: $('#ending-canvas'), faces: faceImgs, logo: logoImg, onDone });
   }
@@ -308,9 +352,12 @@
     return grid;
   }
 
-  // 対戦のとちゅうで やめたら まけ
+  // 対戦のとちゅうで やめたら まけ（くみては そこまでの かちぬき人数で記録）
   function abandonVersus() {
-    if (vs && vs.started && !vs.result) recordVersus(vs.level, 'lose');
+    if (vs && vs.started && !vs.result) {
+      if (lastMode === 'kumite') endKumite(lastOpts, null);
+      else recordVersus(vs.level, 'lose');
+    }
     vs = null;
     cpuGame = null;
   }
@@ -321,7 +368,8 @@
     lastOpts = opts;
     unlockAudio();
     await Promise.all(faceImgs.map(loaded));
-    const n = mode === 'versus' ? VS.colors || 4 : mode === 'allclear' ? opts.n : settings.colors;
+    const isVs = mode === 'versus' || mode === 'kumite';
+    const n = isVs ? VS.colors || 4 : mode === 'allclear' ? opts.n : settings.colors;
     const usable = CFG.faces.map((_, i) => i).filter((i) => faceImgs[i].naturalWidth);
     let pool = usable.filter((i) => !settings.disabled.includes(CFG.faces[i].src));
     if (pool.length < n) pool = pool.concat(shuffle(usable.filter((i) => !pool.includes(i))).slice(0, n - pool.length));
@@ -335,7 +383,8 @@
     $('#pause-modal').hidden = true;
     fx.textContent = '';
     oppFx.textContent = '';
-    gameScreen.dataset.playing = mode; // data-mode だとメニューのボタンと見分けがつかないので別の名前
+    $('#kumite-modal').hidden = true;
+    gameScreen.dataset.playing = isVs ? 'versus' : mode; // data-mode だとメニューのボタンと見分けがつかないので別の名前
     $$('[data-modes]', gameScreen).forEach((el) => (el.hidden = !el.dataset.modes.split(' ').includes(mode)));
     if (garbageFace) gameScreen.style.setProperty('--oj-img', `url("${garbageFace.src}")`);
     show('game');
@@ -349,7 +398,8 @@
       speed: settings.speed,
       garbageFace,
     };
-    const v = mode === 'versus' ? new Versus({ n, level: opts.level, cfg: VS }) : null;
+    const level = mode === 'kumite' ? kumiteLevel(opts.stage) : opts.level;
+    const v = isVs ? new Versus({ n, level, cfg: VS }) : null;
     let me = null, opp = null;
     if (v) {
       opp = new PuyoGame({
@@ -368,11 +418,13 @@
           over: (reason) => v.over(opp, reason),
         },
       });
-      const prof = cpuProfile(opts.level);
+      const kumite = mode === 'kumite';
+      const prof = kumite ? kumiteProfile(opts.stage) : cpuProfile(opts.level);
       $('#opp-face').src = prof.src;
       $('#opp-name').textContent = prof.name;
-      $('#opp-level').textContent = LEVEL_NAME[opts.level];
-      $('#hud-streak').textContent = recOf(opts.level).streak;
+      $('#opp-level').textContent = kumite ? `${opts.stage}にんめ` : LEVEL_NAME[opts.level];
+      $('#hud-streak-label').textContent = kumite ? 'かちぬき' : 'れんしょう';
+      $('#hud-streak').textContent = kumite ? opts.wins : recOf(opts.level).streak;
     }
     if (mode === 'allclear' && opts.preset && !opts.grid) opts.grid = pickPreset(n); // リトライは同じ配置で
     me = new PuyoGame({
@@ -421,6 +473,7 @@
       const dt = (t - lastT) / 1000;
       lastT = t;
       if (!game) return;
+      checkHeld();
       if (autoPlayer) autoPlayer.update(dt);
       if (vs) vs.update(dt);
       else game.update(dt);
@@ -607,11 +660,31 @@
     KeyZ: 'rotL', KeyJ: 'rotL',
   };
   const HOLD = ['left', 'right', 'down'];
+  // いま押されているもの：スマホのボタンは指（pointerId）ごと、キーボードは act ごとに覚えておく。
+  // 離した合図を取りこぼしても押しっぱなしにならないよう、毎フレーム「本当に押されているか」を見なおす
+  const padPointers = new Map(); // pointerId -> { btn, act }
+  const keyHeld = new Set();
+  const isHeld = (act) => keyHeld.has(act) || [...padPointers.values()].some((p) => p.act === act);
+
+  function padRelease(id) {
+    const p = padPointers.get(id);
+    if (!p) return;
+    padPointers.delete(id);
+    if (![...padPointers.values()].some((q) => q.btn === p.btn)) p.btn.classList.remove('on');
+    if (game && HOLD.includes(p.act) && !isHeld(p.act)) game.setHeld(p.act, false);
+  }
 
   function releaseAll() {
-    if (!game) return;
-    HOLD.forEach((k) => game.held[k] && game.setHeld(k, false));
+    padPointers.clear();
+    keyHeld.clear();
     $$('#touch-pad .on').forEach((b) => b.classList.remove('on'));
+    if (game) HOLD.forEach((k) => game.held[k] && game.setHeld(k, false));
+  }
+
+  // 押されていないのに押しっぱなしになっていたら離す（デバッグの自動操作中はしない）
+  function checkHeld() {
+    if (!game || autoPlayer) return;
+    for (const act of HOLD) if (game.held[act] && !isHeld(act)) game.setHeld(act, false);
   }
 
   window.addEventListener('keydown', (e) => {
@@ -631,8 +704,10 @@
         if (!act) return;
         e.preventDefault();
         if (e.repeat) return;
-        if (HOLD.includes(act)) game.setHeld(act, true);
-        else game.press(act);
+        if (HOLD.includes(act)) {
+          keyHeld.add(act);
+          game.setHeld(act, true);
+        } else game.press(act);
         return;
       }
     }
@@ -641,29 +716,41 @@
 
   window.addEventListener('keyup', (e) => {
     const act = KEYMAP[e.code];
-    if (game && HOLD.includes(act)) game.setHeld(act, false);
+    if (!HOLD.includes(act)) return;
+    keyHeld.delete(act);
+    if (game && !isHeld(act)) game.setHeld(act, false);
   });
   window.addEventListener('blur', releaseAll);
+  window.addEventListener('pagehide', releaseAll);
 
   $$('#touch-pad button').forEach((btn) => {
     const act = btn.dataset.act;
     btn.addEventListener('pointerdown', (e) => {
       e.preventDefault();
-      btn.setPointerCapture?.(e.pointerId);
+      try {
+        btn.setPointerCapture?.(e.pointerId);
+      } catch {} // 指がもう離れていた などで失敗しても、ボタンは効くように
+      padPointers.set(e.pointerId, { btn, act });
       btn.classList.add('on');
       if (!game || game.paused) return;
       if (HOLD.includes(act)) game.setHeld(act, true);
       else game.press(act);
     });
-    const up = () => {
-      btn.classList.remove('on');
-      if (game && HOLD.includes(act)) game.setHeld(act, false);
-    };
+    const up = (e) => padRelease(e.pointerId);
     btn.addEventListener('pointerup', up);
     btn.addEventListener('pointercancel', up);
     btn.addEventListener('lostpointercapture', up);
     btn.addEventListener('contextmenu', (e) => e.preventDefault());
   });
+  // ボタンの外で指を離したときや、通知などで操作がとぎれたときも離した扱いに
+  window.addEventListener('pointerup', (e) => padRelease(e.pointerId), true);
+  window.addEventListener('pointercancel', (e) => padRelease(e.pointerId), true);
+  const allFingersUp = (e) => {
+    if (e.touches.length) return;
+    for (const id of [...padPointers.keys()]) padRelease(id);
+  };
+  window.addEventListener('touchend', allFingersUp, true);
+  window.addEventListener('touchcancel', allFingersUp, true);
 
   // メニューのキーボード操作（↑↓で選ぶ、Enterで決定、Escでもどる）
   function menuKeys(e) {
@@ -704,9 +791,11 @@
   }
   $('#btn-pause').addEventListener('click', () => setPause(true));
   $('#btn-resume').addEventListener('click', () => setPause(false));
+  // くみての「さいしょから」は1人目から
+  const freshOpts = () => (lastMode === 'kumite' ? { stage: 1, wins: 0, maxChain: 0 } : lastOpts);
   $('#btn-restart').addEventListener('click', () => {
     Sound.play('decide');
-    startGame(lastMode, lastOpts);
+    startGame(lastMode, freshOpts());
   });
   $('#btn-quit').addEventListener('click', () => {
     Sound.play('decide');
@@ -716,22 +805,28 @@
     show('menu');
   });
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden && screen === 'game') setPause(true);
+    if (!document.hidden) return;
+    releaseAll();
+    if (screen === 'game') setPause(true);
   });
 
   // ---------------- リザルト ----------------
-  let pending = null;
   let lastEntryId = null;
-  const MODE_NAME = { endless: 'とことんモード', time: 'タイムアタック' };
+  let lastShare = null; // シェアする中身
+  const MODE_NAME = { endless: 'とことんモード', time: 'タイムアタック', kumite: 'くみて' };
   const acName = (preset, n) => `ぜんけしアタック（${preset ? 'はいち あり' : 'はいち なし'}・${n}しゅるい）`;
+  const isTimeKey = (key) => key.startsWith('ac-');
 
   // ゲームが終わったら：とことんモードで規定の点数以上ならエンディング → リザルト
   function finishGame(r) {
-    const mode = game.mode, v = vs;
+    const mode = lastMode, v = vs;
+    const sent = v ? v.sentBy(v.me) : 0;
     game = null;
     cpuGame = null;
     vs = null;
-    if (mode === 'versus') return showVersusResult(r, v);
+    addPopStats(r);
+    if (mode === 'versus') return showVersusResult(r, v, sent);
+    if (mode === 'kumite') return kumiteNext(r, v, sent);
     if (mode === 'allclear') return showAllclearResult(r, lastOpts);
     const min = CFG.ending && CFG.ending.minScore;
     if (mode === 'endless' && min && r.score >= min) {
@@ -744,6 +839,7 @@
 
   function addPopStats(r) {
     for (const [src, c] of Object.entries(r.popStats)) stats.pops[src] = (stats.pops[src] || 0) + c;
+    stats.plays = (stats.plays || 0) + 1;
     store.set('stats', stats);
   }
 
@@ -751,6 +847,7 @@
     const top = Object.entries(r.popStats).sort((a, b) => b[1] - a[1])[0];
     return top ? top[0] : CFG.faces[rnd(CFG.faces.length)].src;
   }
+  const topFaces = (r) => Object.entries(r.popStats).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([src]) => src);
 
   // リザルト画面の中身をうめる（big は大きく出す数字や文字）
   function fillResult({ title, mode, big, unit, l1, v1, l2, v2, face, retry = 'もういちど', retryNew = false }) {
@@ -766,22 +863,89 @@
     $('#result-face').src = face;
     $('#retry-label').textContent = retry;
     $('#btn-retry-new').hidden = !retryNew;
+    $('#rank-status').hidden = true;
+    $('#rank-status').textContent = '';
   }
 
-  // ランクインしたら名前を入れてもらう
-  function showRankin(pos) {
-    $('#rankin').hidden = !pending;
-    if (pending) {
-      $('#rankin-pos').textContent = pos + 1;
-      $('#name-input').value = store.get('name', '');
-      $('#name-form').hidden = false;
-    }
-    show('result');
-    if (pending) $('#name-input').focus();
+  // 記録を自動でランキングにのせる（この端末のトップ10 と、ぜんこく）。名前は せってい の名前
+  function recordScore(key, value, extra = {}) {
+    const byTime = isTimeKey(key);
+    const list = listOf(key);
+    lastEntryId = Date.now();
+    const entry = { id: lastEntryId, name: playerName(), date: lastEntryId, chain: extra.chain || 0, ...extra };
+    if (byTime) entry.time = value;
+    else entry.score = value;
+    list.push(entry);
+    list.sort(byTime ? (a, b) => a.time - b.time : (a, b) => b.score - a.score);
+    ranking[key] = list.slice(0, 10);
+    store.set('ranking', ranking);
+    const pos = ranking[key].findIndex((e) => e.id === lastEntryId);
+    showRankStatus(key, value, pos, extra.chain || 0);
   }
+
+  // リザルトの「じぶん ○い / ぜんこく ○い」
+  function showRankStatus(key, value, pos, chain) {
+    const box = $('#rank-status');
+    box.textContent = '';
+    box.hidden = false;
+    const local = document.createElement('span');
+    local.textContent = pos === 0 ? 'じぶんベスト こうしん！' : pos > 0 ? `じぶんの きろく ${pos + 1}い` : 'じぶんの トップ10 には とどかず';
+    box.appendChild(local);
+    if (!Online.enabled) return;
+    const net = document.createElement('span');
+    net.className = 'net';
+    net.textContent = 'ぜんこく ランキングに そうしん中…';
+    box.appendChild(net);
+    const share = lastShare;
+    (async () => {
+      const ok = await Online.submit({ secret: player.secret, publicId: player.publicId, mode: key, name: playerName(), value, chain });
+      if (!ok) {
+        net.textContent = 'つながらなかった（つぎに おくりなおすね）';
+        return;
+      }
+      delete onlineCache[key];
+      try {
+        const rank = await Online.rankOf(key, value, player.publicId);
+        net.textContent = rank ? `ぜんこく ${rank}い！` : 'ぜんこく ランキングに のせたよ';
+        if (share && rank) share.rank = rank;
+      } catch {
+        net.textContent = 'ぜんこく ランキングに のせたよ';
+      }
+    })();
+  }
+
+  // じっせきの判定に使う、これまでの合計
+  function checkAchievements(e) {
+    const s = {
+      versus: versusRec,
+      totalPops: Object.values(stats.pops).reduce((a, b) => a + b, 0),
+      facesPopped: CFG.faces.filter((f) => stats.pops[f.src] > 0).length,
+      facesTotal: CFG.faces.length,
+      plays: stats.plays || 0,
+      endingSeen: !!stats.endingSeen,
+    };
+    const got = [];
+    for (const a of ACHIEVEMENTS) {
+      if (achieved[a.id]) continue;
+      let ok = false;
+      try {
+        ok = a.test(e, s);
+      } catch {}
+      if (ok) {
+        achieved[a.id] = Date.now();
+        got.push(a);
+      }
+    }
+    if (!got.length) return;
+    store.set('achievements', achieved);
+    got.forEach((a, i) => setTimeout(() => toast('🏆 じっせき かいじょ！', a.name), 400 + i * 900));
+  }
+  const gameEvent = (mode, r, extra = {}) => ({
+    mode, score: r.score, maxChain: r.maxChain, reason: r.reason, time: r.time, pieces: r.pieces, allClears: r.allClears || 0, ...extra,
+  });
 
   function showResult(r, mode) {
-    addPopStats(r);
+    const secs = CFG.timeAttackSeconds;
     fillResult({
       title: r.reason === 'timeup' ? 'タイムアップ！' : 'ばたんきゅ〜',
       mode: MODE_NAME[mode],
@@ -791,15 +955,20 @@
       l2: 'おとした数', v2: r.pieces,
       face: topFace(r),
     });
-    const list = listOf(mode);
-    const pos = list.filter((e) => e.score >= r.score).length;
-    pending = r.score > 0 && pos < 10 ? { key: mode, score: r.score, chain: r.maxChain } : null;
-    showRankin(pos);
+    lastShare = {
+      line: mode === 'time'
+        ? `さたぷよ タイムアタック${secs}びょうで ${r.score.toLocaleString()}てん！（さいだい${r.maxChain}れんさ）`
+        : `さたぷよ とことんモードで ${r.score.toLocaleString()}てん！（さいだい${r.maxChain}れんさ）`,
+      mode: MODE_NAME[mode], big: r.score.toLocaleString(), unit: 'てん', sub: `さいだい ${r.maxChain}れんさ`,
+      face: topFace(r), faces: topFaces(r),
+    };
+    if (r.score > 0) recordScore(mode, r.score, { chain: r.maxChain });
+    show('result');
+    checkAchievements(gameEvent(mode, r));
   }
 
   // ぜんけしアタック：成功ならタイムでランキング、失敗ならゲームオーバー画面からリトライ
   function showAllclearResult(r, opts) {
-    addPopStats(r);
     const ok = r.reason === 'clear';
     fillResult({
       title: ok ? 'ぜんけし せいこう！' : 'しっぱい…',
@@ -812,11 +981,16 @@
       retry: 'リトライ',
       retryNew: opts.preset,
     });
-    const key = acKey(opts.preset, opts.n);
-    const list = listOf(key);
-    const pos = list.filter((e) => e.time <= r.time).length;
-    pending = ok && pos < 10 ? { key, time: r.time, chain: r.maxChain, pieces: r.pieces } : null;
-    showRankin(pos);
+    lastShare = {
+      line: ok
+        ? `さたぷよ ${acName(opts.preset, opts.n)}を ${fmtClock(r.time)} で クリア！`
+        : `さたぷよ ${acName(opts.preset, opts.n)}に ちょうせん中…（さいだい${r.maxChain}れんさ）`,
+      mode: acName(opts.preset, opts.n), big: ok ? fmtClock(r.time) : 'ちょうせん中', unit: '', sub: `さいだい ${r.maxChain}れんさ / ${r.pieces}て`,
+      face: topFace(r), faces: topFaces(r),
+    };
+    if (ok) recordScore(acKey(opts.preset, opts.n), r.time, { chain: r.maxChain, pieces: r.pieces });
+    show('result');
+    checkAchievements(gameEvent('allclear', r, { preset: opts.preset, n: opts.n }));
   }
 
   function recordVersus(lv, result) {
@@ -833,10 +1007,10 @@
     return rec;
   }
 
-  function showVersusResult(r, v) {
-    addPopStats(r);
+  function showVersusResult(r, v, sent) {
     const result = v.result || 'lose';
     const rec = recordVersus(v.level, result);
+    const prof = cpuProfile(v.level);
     fillResult({
       title: { win: 'かち！', lose: 'まけ…', draw: 'ひきわけ' }[result],
       mode: `CPU たいせん（${LEVEL_NAME[v.level]}）`,
@@ -844,52 +1018,192 @@
       unit: 'れんしょう',
       l1: 'さいだい れんさ', v1: r.maxChain,
       l2: 'さいこう れんしょう', v2: rec.best,
-      face: cpuProfile(v.level).src,
+      face: prof.src,
     });
-    pending = null;
-    showRankin(0);
+    const vsName = `${LEVEL_NAME[v.level]} ${prof.name}`;
+    lastShare = {
+      line: result === 'win'
+        ? `さたぷよ CPU たいせんで「${vsName}」に かった！（${rec.streak}れんしょう中）`
+        : `さたぷよ CPU たいせんで「${vsName}」に まけた…つぎは かつ！`,
+      mode: `CPU たいせん（${LEVEL_NAME[v.level]}）`,
+      big: result === 'win' ? String(rec.streak) : 'まけ…', unit: result === 'win' ? 'れんしょう' : '',
+      sub: `さいだい ${r.maxChain}れんさ`, face: prof.src, faces: topFaces(r),
+    };
+    show('result');
+    checkAchievements(gameEvent('versus', r, { result, level: v.level, sent }));
   }
 
-  $('#name-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    if (!pending) return;
-    const name = $('#name-input').value.trim().slice(0, 10) || 'ななし';
-    store.set('name', name);
-    lastEntryId = Date.now();
-    const byTime = pending.time != null;
-    const list = listOf(pending.key);
-    const entry = { id: lastEntryId, name, chain: pending.chain, date: lastEntryId };
-    if (byTime) Object.assign(entry, { time: pending.time, pieces: pending.pieces });
-    else entry.score = pending.score;
-    list.push(entry);
-    list.sort(byTime ? (a, b) => a.time - b.time : (a, b) => b.score - a.score);
-    ranking[pending.key] = list.slice(0, 10);
-    store.set('ranking', ranking);
-    const ac = /^ac-(pre|none)-(\d)$/.exec(pending.key);
-    if (ac) {
-      rankTab = 'allclear';
-      rankAc.preset = ac[1];
-      rankAc.n = +ac[2];
-    } else rankTab = pending.key;
-    pending = null;
+  // ---------------- くみて ----------------
+  // 勝ったら次の相手、ひきわけなら同じ相手ともう一度、負けたらおわり
+  function kumiteNext(r, v, sent) {
+    const result = v.result || 'lose';
+    const opts = { ...lastOpts, maxChain: Math.max(lastOpts.maxChain || 0, r.maxChain) };
+    if (result === 'lose') return endKumite(opts, r);
+    const next = result === 'win' ? { ...opts, stage: opts.stage + 1, wins: opts.wins + 1 } : opts;
+    checkAchievements(gameEvent('kumite', r, { kumiteWins: next.wins, sent }));
+    lastOpts = next;
+    const prof = kumiteProfile(next.stage);
+    $('#kumite-title').textContent = result === 'win' ? `${next.wins}にんぬき！` : 'ひきわけ';
+    $('#kumite-sub').textContent = result === 'win' ? 'つぎの あいては…' : 'もういちど おなじ あいてと';
+    $('#kumite-face').src = prof.src;
+    $('#kumite-stage').textContent = `${next.stage}にんめ`;
+    $('#kumite-name').textContent = prof.name;
+    $('#kumite-modal').hidden = false;
+    $('#btn-kumite-next').focus();
+  }
+  $('#btn-kumite-next').addEventListener('click', () => {
     Sound.play('decide');
-    show('ranking');
+    $('#kumite-modal').hidden = true;
+    startGame('kumite', lastOpts);
   });
+  $('#btn-kumite-stop').addEventListener('click', () => {
+    Sound.play('decide');
+    $('#kumite-modal').hidden = true;
+    endKumite(lastOpts, null, true);
+  });
+
+  // くみての おわり：かちぬいた人数を記録。r が null で quit でもなければ（メニューへ などで）画面は出さない
+  function endKumite(opts, r, quit = false) {
+    const wins = opts.wins;
+    kumiteRec.runs++;
+    kumiteRec.best = Math.max(kumiteRec.best, wins);
+    store.set('kumite', kumiteRec);
+    if (!r && !quit) {
+      if (wins > 0) recordScore('kumite', wins, { chain: opts.maxChain || 0 });
+      return;
+    }
+    const prof = kumiteProfile(opts.stage);
+    fillResult({
+      title: quit ? 'くみて おわり' : 'まけ…',
+      mode: quit ? `くみて（${wins}にん かちぬいて やめた）` : `くみて（${opts.stage}にんめ ${prof.name} に まけ）`,
+      big: wins,
+      unit: 'にんぬき',
+      l1: 'さいだい れんさ', v1: opts.maxChain || 0,
+      l2: 'さいこう', v2: `${kumiteRec.best}にん`,
+      face: prof.src,
+    });
+    lastShare = {
+      line: `さたぷよ くみてで ${wins}にんぬき！（さいだい${opts.maxChain || 0}れんさ）`,
+      mode: 'くみて（かちぬき戦）', big: String(wins), unit: 'にんぬき', sub: `さいだい ${opts.maxChain || 0}れんさ`,
+      face: prof.src, faces: r ? topFaces(r) : [],
+    };
+    if (wins > 0) recordScore('kumite', wins, { chain: opts.maxChain || 0 });
+    show('result');
+  }
 
   $('#btn-retry').addEventListener('click', () => {
     Sound.play('decide');
-    startGame(lastMode, lastOpts);
+    startGame(lastMode, freshOpts());
   });
   $('#btn-retry-new').addEventListener('click', () => {
     Sound.play('decide');
     startGame(lastMode, { ...lastOpts, grid: null });
   });
 
+  // ---------------- シェア ----------------
+  const imgOf = (src) => faceImgs[CFG.faces.findIndex((f) => f.src === src)] || Object.assign(new Image(), { src });
+  let shareFile = null, shareUrl = '';
+
+  function setShareLinks() {
+    const L = Share.links($('#share-text').value);
+    $('#share-x').href = L.x;
+    $('#share-line').href = L.line;
+    $('#share-threads').href = L.threads;
+    $('#share-bsky').href = L.bsky;
+    $('#share-fb').href = L.fb;
+  }
+
+  async function openShare() {
+    const s = lastShare;
+    if (!s) return;
+    if (document.fonts && document.fonts.ready) await document.fonts.ready;
+    const rank = s.rank ? `ぜんこく ${s.rank}い！` : '';
+    const c = Share.card({
+      mode: s.mode, big: s.big, unit: s.unit, sub: [s.sub, rank].filter(Boolean).join('  '),
+      face: imgOf(s.face), faces: (s.faces || []).map(imgOf), logo: logoImg,
+    });
+    shareUrl = c.toDataURL('image/png');
+    $('#share-image').src = shareUrl;
+    $('#share-text').value = Share.fullText([s.line, rank].filter(Boolean).join(' '));
+    setShareLinks();
+    shareFile = null;
+    $('#share-native').hidden = !navigator.share;
+    c.toBlob((blob) => {
+      if (blob && window.File) shareFile = new File([blob], 'satapuyo.png', { type: 'image/png' });
+    }, 'image/png');
+    $('#share-modal').hidden = false;
+    $('#share-close').focus();
+  }
+  $('#btn-share').addEventListener('click', () => {
+    Sound.play('decide');
+    openShare();
+  });
+  $('#share-text').addEventListener('input', setShareLinks);
+  $('#share-native').addEventListener('click', async () => {
+    const data = { text: $('#share-text').value };
+    if (shareFile && navigator.canShare && navigator.canShare({ files: [shareFile] })) data.files = [shareFile];
+    try {
+      await navigator.share(data);
+    } catch {}
+  });
+  $('#share-copy').addEventListener('click', () => copyText($('#share-text').value, 'ぶんしょうを コピーしたよ'));
+  $('#share-save').addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = shareUrl;
+    a.download = 'satapuyo.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+  $('#share-close').addEventListener('click', () => {
+    $('#share-modal').hidden = true;
+    focusFirst();
+  });
+
+  async function copyText(text, done) {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast('📋', done);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      const ok = document.execCommand && document.execCommand('copy');
+      ta.remove();
+      if (ok) toast('📋', done);
+      else prompt('この ぶんしょうを コピーしてね', text);
+    }
+  }
+
+  // ちょっとした おしらせ（じっせき かいじょ・コピーしたよ など）
+  function toast(title, text) {
+    const el = document.createElement('div');
+    el.className = 'toast';
+    const b = document.createElement('b');
+    b.textContent = title;
+    const s = document.createElement('span');
+    s.textContent = text;
+    el.append(b, s);
+    $('#toast-layer').appendChild(el);
+    if (title.startsWith('🏆')) Sound.play('decide');
+    setTimeout(() => el.remove(), 3200);
+  }
+
   // ---------------- ランキング ----------------
   let rankTab = 'endless';
+  let rankScope = Online.enabled ? 'online' : 'local';
+  let rankCpu = 'kumite';
   const rankAc = { preset: 'pre', n: settings.colors };
-  const rankKey = () => (rankTab === 'allclear' ? `ac-${rankAc.preset}-${rankAc.n}` : rankTab);
-  const rankName = () => (rankTab === 'allclear' ? acName(rankAc.preset === 'pre', rankAc.n) : MODE_NAME[rankTab]);
+  const onlineCache = {}; // key -> { at, rows }
+  let rankReq = 0;
+  const rankKey = () => (rankTab === 'allclear' ? `ac-${rankAc.preset}-${rankAc.n}` : rankTab === 'cpu' ? rankCpu : rankTab);
+  const rankName = () => (rankTab === 'allclear' ? acName(rankAc.preset === 'pre', rankAc.n) : MODE_NAME[rankKey()]);
+  const fmtValue = (key, v) => (isTimeKey(key) ? fmtClock(v) : key === 'kumite' ? `${v}にんぬき` : Math.round(v).toLocaleString());
+  const fmtDay = (t) => {
+    const d = new Date(t);
+    return `${d.getMonth() + 1}/${d.getDate()}`;
+  };
 
   function rankRow(posContent, name, subText, ptsText, cls = '') {
     const li = document.createElement('li');
@@ -910,15 +1224,33 @@
     return li;
   }
 
+  function rankMessage(text) {
+    const li = document.createElement('li');
+    li.className = 'empty';
+    li.textContent = text;
+    $('#rank-list').appendChild(li);
+  }
+
   function renderRanking() {
     $$('#rank-tabs button').forEach((b) => b.classList.toggle('active', b.dataset.tab === rankTab));
     $('#rank-sub').hidden = rankTab !== 'allclear';
-    $$('#rank-sub .seg').forEach((seg) => {
-      $$('button', seg).forEach((b) => b.classList.toggle('active', b.dataset.val === String(rankAc[seg.dataset.sub])));
+    $('#rank-cpu').hidden = rankTab !== 'cpu';
+    const subVal = { scope: rankScope, preset: rankAc.preset, n: rankAc.n, cpu: rankCpu };
+    $$('#screen-ranking .seg[data-sub]').forEach((seg) => {
+      $$('button', seg).forEach((b) => b.classList.toggle('active', b.dataset.val === String(subVal[seg.dataset.sub])));
     });
+    const key = rankKey();
+    const versusTab = key === 'versus';
+    const online = Online.enabled && !versusTab && rankScope === 'online';
+    $('#rank-scope').hidden = !Online.enabled || versusTab;
+    $('#btn-rank-reset').hidden = online;
+    const note = $('#rank-note');
+    note.hidden = Online.enabled || versusTab;
+    note.textContent = 'ぜんこく ランキングは じゅんびちゅう。いまは この たんまつの きろく（トップ10）だけ。';
     const ol = $('#rank-list');
     ol.textContent = '';
-    if (rankTab === 'versus') {
+    ol.classList.toggle('long', online);
+    if (versusTab) {
       // 強さごとの連勝数
       for (const lv of LEVELS) {
         const rec = recOf(lv), prof = cpuProfile(lv);
@@ -932,42 +1264,72 @@
       }
       return;
     }
-    const list = listOf(rankKey());
-    if (!list.length) {
-      const li = document.createElement('li');
-      li.className = 'empty';
-      li.textContent = 'まだ きろくがないよ';
-      ol.appendChild(li);
-      return;
-    }
+    if (online) return renderOnline(key);
+    const list = listOf(key);
+    if (!list.length) return rankMessage('まだ きろくがないよ');
     list.forEach((e, i) => {
-      const d = new Date(e.date);
-      const day = `${d.getMonth() + 1}/${d.getDate()}`;
       const byTime = e.time != null;
       ol.appendChild(rankRow(
         String(i + 1),
         e.name,
-        byTime ? `${day}  ${e.pieces}て・さいだい${e.chain}れんさ` : `${day}  さいだい${e.chain}れんさ`,
-        byTime ? fmtClock(e.time) : e.score.toLocaleString(),
+        byTime ? `${fmtDay(e.date)}  ${e.pieces}て・さいだい${e.chain}れんさ` : `${fmtDay(e.date)}  さいだい${e.chain}れんさ`,
+        fmtValue(key, byTime ? e.time : e.score),
         e.id === lastEntryId ? 'me' : '',
       ));
     });
   }
+
+  // ぜんこく（100いまで）。30秒は よみなおさない
+  async function renderOnline(key) {
+    const id = ++rankReq;
+    const cached = onlineCache[key];
+    let rows = cached && Date.now() - cached.at < 30000 ? cached.rows : null;
+    if (!rows) {
+      rankMessage('よみこみちゅう…');
+      try {
+        rows = await Online.top(key, 100);
+        onlineCache[key] = { at: Date.now(), rows };
+      } catch {
+        if (id !== rankReq) return;
+        $('#rank-list').textContent = '';
+        return rankMessage('つながらなかった。あとで もういちど ためしてね');
+      }
+    }
+    if (id !== rankReq || screen !== 'ranking') return;
+    const ol = $('#rank-list');
+    ol.textContent = '';
+    if (!rows.length) return rankMessage('まだ だれも のっていないよ');
+    rows.forEach((e, i) => {
+      ol.appendChild(rankRow(
+        String(i + 1),
+        e.name,
+        `${fmtDay(e.updated_at)}  さいだい${e.chain}れんさ`,
+        fmtValue(key, e.value),
+        e.public_id === player.publicId ? 'me' : '',
+      ));
+    });
+    // 自分の行が見えるように（リストの中だけ スクロール。画面ごと動かさない）
+    const me = ol.querySelector('.me');
+    ol.scrollTop = me ? me.offsetTop - ol.clientHeight / 2 + me.offsetHeight / 2 : 0;
+  }
+
   $$('#rank-tabs button').forEach((b) => b.addEventListener('click', () => {
     rankTab = b.dataset.tab;
     Sound.play('select');
     renderRanking();
   }));
-  $$('#rank-sub .seg').forEach((seg) => {
+  $$('#screen-ranking .seg[data-sub]').forEach((seg) => {
     $$('button', seg).forEach((b) => b.addEventListener('click', () => {
-      const k = seg.dataset.sub;
-      rankAc[k] = k === 'n' ? +b.dataset.val : b.dataset.val;
+      const k = seg.dataset.sub, v = b.dataset.val;
+      if (k === 'scope') rankScope = v;
+      else if (k === 'cpu') rankCpu = v;
+      else rankAc[k] = k === 'n' ? +v : v;
       Sound.play('select');
       renderRanking();
     }));
   });
   $('#btn-rank-reset').addEventListener('click', () => {
-    if (rankTab === 'versus') {
+    if (rankKey() === 'versus') {
       if (!Object.keys(versusRec).length) return;
       if (!confirm('CPU たいせんの きろく（れんしょう）をけしますか？')) return;
       for (const k of Object.keys(versusRec)) delete versusRec[k];
@@ -977,11 +1339,35 @@
     }
     const key = rankKey();
     if (!listOf(key).length) return;
-    if (!confirm(`${rankName()}のランキングをけしますか？`)) return;
+    if (!confirm(`${rankName()}の じぶんの きろくを けしますか？（ぜんこくランキングは けえません）`)) return;
     ranking[key] = [];
     store.set('ranking', ranking);
     renderRanking();
   });
+
+  // ---------------- じっせき ----------------
+  function renderAchievements() {
+    const box = $('#ach-list');
+    box.textContent = '';
+    $('#ach-count2').textContent = Object.keys(achieved).length;
+    $('#ach-total2').textContent = ACHIEVEMENTS.length;
+    for (const a of ACHIEVEMENTS) {
+      const at = achieved[a.id];
+      const card = document.createElement('div');
+      card.className = 'ach' + (at ? ' got' : '');
+      const icon = document.createElement('span');
+      icon.className = 'ach-icon';
+      icon.textContent = at ? '🏆' : '🔒';
+      const body = document.createElement('div');
+      const name = document.createElement('b');
+      name.textContent = a.name;
+      const desc = document.createElement('small');
+      desc.textContent = at ? `${a.desc}（${fmtDay(at)}）` : a.desc;
+      body.append(name, desc);
+      card.append(icon, body);
+      box.appendChild(card);
+    }
+  }
 
   // ---------------- ずかん ----------------
   function renderGallery() {
@@ -1078,7 +1464,55 @@
       $$('button', seg).forEach((b) => b.classList.toggle('active', b.dataset.val === String(settings[key])));
     });
     $('#volume').value = settings.volume;
+    $('#settings-name').value = store.get('name', '');
   }
+
+  // なまえを かえる（ぜんこくランキングの名前も かわる）
+  $('#settings-name-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = $('#settings-name').value.trim().slice(0, 10) || 'ななし';
+    store.set('name', name);
+    $('#settings-name').value = name;
+    $('#settings-name').blur();
+    Sound.play('decide');
+    toast('✏️', `なまえを「${name}」に したよ`);
+    for (const k of Object.keys(onlineCache)) delete onlineCache[k];
+    await Online.rename(player.secret, name);
+  });
+
+  // データの ひきつぎ：この端末の きろく（satapuyo. で始まる保存）を ぜんぶ1つの文字列にする
+  function exportCode() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('satapuyo.')) data[k] = localStorage.getItem(k);
+    }
+    let bin = '';
+    new TextEncoder().encode(JSON.stringify(data)).forEach((b) => (bin += String.fromCharCode(b)));
+    return 'SATAPUYO1:' + btoa(bin);
+  }
+  function importCode(code) {
+    const m = /^SATAPUYO1:([A-Za-z0-9+/=]+)$/.exec(code.replace(/\s+/g, ''));
+    if (!m) throw new Error('bad code');
+    const bin = atob(m[1]);
+    const data = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+    for (const [k, v] of Object.entries(data)) if (k.startsWith('satapuyo.') && typeof v === 'string') localStorage.setItem(k, v);
+  }
+  $('#btn-export').addEventListener('click', () => {
+    Sound.play('decide');
+    copyText(exportCode(), 'ひきつぎコードを コピーしたよ。あたらしい たんまつで「コードを いれる」に はりつけてね');
+  });
+  $('#btn-import').addEventListener('click', () => {
+    const code = prompt('ひきつぎコードを はりつけてね（いまの きろくは うわがき されるよ）');
+    if (!code) return;
+    try {
+      importCode(code);
+      alert('ひきつぎ できたよ！ さいよみこみ するね');
+      location.reload();
+    } catch {
+      alert('コードが ちがうみたい。もういちど コピーしなおしてね');
+    }
+  });
   $$('.seg[data-key]').forEach((seg) => {
     const key = seg.dataset.key;
     $$('button', seg).forEach((b) => b.addEventListener('click', () => {

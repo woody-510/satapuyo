@@ -212,15 +212,19 @@
   };
 
   class CpuBrain {
-    constructor(level, n) {
+    // targets: 何れんさ組んだら撃つかの候補（くみてで強くするとき用。なければ強さごとのいつもの値）
+    constructor(level, n, targets = null, fumble = null) {
       this.level = level;
       this.n = n;
+      this.targets = targets;
+      this.fumble = fumble ?? (LEVELS[level] || LEVELS.normal).fumble;
       this.reroll();
     }
 
     // 何れんさ組んだら撃つか（撃つたびに選びなおす）
     reroll() {
-      this.target = this.level === 'strong' ? [4, 5, 5, 6, 6, 7][rnd(6)] : this.level === 'normal' ? 2 + rnd(2) : 1;
+      if (this.targets) this.target = this.targets[rnd(this.targets.length)];
+      else this.target = this.level === 'strong' ? [4, 5, 5, 6, 6, 7][rnd(6)] : this.level === 'normal' ? 2 + rnd(2) : 1;
     }
 
     // st: { b: 盤面, cur: [軸, 子], next: [軸, 子], threat: 自分に来るおじゃまの数, rivalDanger: 相手がつみあがりそう }
@@ -245,7 +249,7 @@
       }
       scored.sort((p, q) => q.v - p.v);
       let pick = scored[0];
-      if (Math.random() < LEVELS[L].fumble) {
+      if (Math.random() < this.fumble) {
         const ok = scored.slice(0, 4).filter((s) => s.v > -1e8);
         if (ok.length) pick = ok[rnd(ok.length)];
       }
@@ -307,13 +311,33 @@
 
   // ---------------- ボタン操作 ----------------
   // 置き場所を決めたら、人と同じように回転・移動のボタンを押して運ぶ
+  // くみての何人目か（1から）に合わせた強さ。1・2人目はよわい、3・4人目はふつう、5人目から つよい で、
+  // そこから1人ごとに 考える時間と操作が速くなり、組む連鎖も大きくなっていく
+  function kumiteLevel(stage) {
+    if (stage <= 1) return { brain: 'weak', think: [1.0, 1.5], step: 0.24, drop: 'slow', fumble: 0.3 };
+    if (stage === 2) return { brain: 'weak', think: [0.8, 1.2], step: 0.2, drop: 'slow', fumble: 0.2 };
+    if (stage === 3) return { brain: 'normal', think: [0.7, 1.1], step: 0.15, drop: 'soft', fumble: 0.12 };
+    if (stage === 4) return { brain: 'normal', think: [0.55, 0.9], step: 0.13, drop: 'soft', fumble: 0.05 };
+    const k = stage - 5;
+    const f = Math.pow(0.9, k);
+    return {
+      brain: 'strong',
+      think: [Math.max(0.12, 0.55 * f), Math.max(0.2, 0.85 * f)],
+      step: Math.max(0.045, 0.11 * f),
+      drop: k >= 4 ? 'hard' : 'soft',
+      fumble: 0,
+      targets: k < 3 ? [4, 5, 5, 6] : k < 7 ? [5, 6, 6, 7] : [6, 7, 7, 8],
+    };
+  }
+
   class CpuPlayer {
+    // level は 'weak' / 'normal' / 'strong' か、kumiteLevel() の形のオブジェクト
     constructor(game, level, rival = null) {
       this.game = game;
       this.rival = rival;
-      this.level = level;
-      this.cfg = LEVELS[level] || LEVELS.normal;
-      this.brain = new CpuBrain(level, game.n);
+      this.cfg = typeof level === 'string' ? LEVELS[level] || LEVELS.normal : level;
+      this.level = typeof level === 'string' ? level : level.brain;
+      this.brain = new CpuBrain(this.level, game.n, this.cfg.targets, this.cfg.fumble);
       this.pair = null;
       this.task = null;
       this.plan = null;
@@ -396,6 +420,6 @@
   }
 
   const Sim = { fromGrid, topY, heightOf, dead, chain, placements, place, potential, features, W, H, EMPTY, GARB };
-  if (typeof window !== 'undefined') Object.assign(window, { CpuPlayer, CpuBrain, PuyoSim: Sim });
-  if (typeof module === 'object' && module.exports) module.exports = { Sim, CpuBrain, CpuPlayer, LEVELS };
+  if (typeof window !== 'undefined') Object.assign(window, { CpuPlayer, CpuBrain, PuyoSim: Sim, kumiteLevel });
+  if (typeof module === 'object' && module.exports) module.exports = { Sim, CpuBrain, CpuPlayer, LEVELS, kumiteLevel };
 })();

@@ -5,11 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <meta name="theme-color" content="#2c1e5c">
   <title>さたぷよ</title>
+  <meta name="description" content="さたろうの顔が落ちてくる、ぷよぷよ風の落ちものパズル。とことん・タイムアタック・ぜんけしアタック・CPU たいせん・くみて。ブラウザですぐ遊べる！">
+  <!-- SNS で URL を貼ったときのプレビュー -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="さたぷよ">
+  <meta property="og:title" content="さたぷよ - さたろうの顔が落ちてくる ぷよぷよ風パズル">
+  <meta property="og:description" content="とことん・タイムアタック・ぜんけしアタック・CPU たいせん・くみて。ブラウザですぐ遊べる！">
+  <meta property="og:url" content="https://satapuyo.com/">
+  <meta property="og:image" content="https://satapuyo.com/assets/ui/ogp.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/ui/icon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=18">
+  <link rel="stylesheet" href="css/style.css?v=19">
 </head>
 <body>
   <div id="bg" aria-hidden="true">
@@ -51,6 +62,10 @@
           <span class="menu-title">CPU たいせん</span>
           <span class="menu-sub">さたろうと しょうぶ / さいこう <b id="best-versus">0</b>れんしょう</span>
         </button>
+        <button class="menu-btn c1" data-mode="kumite">
+          <span class="menu-title">くみて</span>
+          <span class="menu-sub">さたろうと かちぬき戦。どんどん強くなる / ベスト <b id="best-kumite">0</b>にんぬき</span>
+        </button>
         <div class="menu-row">
           <button class="menu-btn c3 half" data-go="ranking"><span class="menu-title">ランキング</span></button>
           <button class="menu-btn c4 half" data-go="gallery"><span class="menu-title">ずかん</span></button>
@@ -59,10 +74,16 @@
           <button class="menu-btn c5 half" data-go="settings"><span class="menu-title">せってい</span></button>
           <button class="menu-btn c6 half" data-go="howto"><span class="menu-title">あそびかた</span></button>
         </div>
-        <button class="menu-btn c7" data-go="credits">
-          <span class="menu-title">♪ おんがく</span>
-          <span class="menu-sub">BGM を作ったプラグインと YouTube</span>
-        </button>
+        <div class="menu-row">
+          <button class="menu-btn c2 half" data-go="achievements">
+            <span class="menu-title">じっせき</span>
+            <span class="menu-sub"><b id="ach-count">0</b> / <span id="ach-total">0</span></span>
+          </button>
+          <button class="menu-btn c7 half" data-go="credits">
+            <span class="menu-title">♪ おんがく</span>
+            <span class="menu-sub">BGM と YouTube</span>
+          </button>
+        </div>
         <button class="menu-btn c4" id="btn-ending" hidden>
           <span class="menu-title">★ エンディング</span>
           <span class="menu-sub">100万点の、その先で見たもの</span>
@@ -123,7 +144,7 @@
   <section class="screen" id="screen-game">
     <div class="game-layout" id="game-layout">
       <div class="field-col">
-        <div class="ojama-bar" id="ojama-me" data-modes="versus"></div>
+        <div class="ojama-bar" id="ojama-me" data-modes="versus kumite"></div>
         <div class="field-wrap" id="field-wrap">
           <canvas id="field"></canvas>
           <div class="fx-layer" id="fx-layer"></div>
@@ -135,7 +156,7 @@
           <canvas id="next"></canvas>
         </div>
         <!-- 対戦相手（スマホでは右の列に小さく、横長の画面では右どなりに） -->
-        <div class="opp-box" id="opp-box" data-modes="versus">
+        <div class="opp-box" id="opp-box" data-modes="versus kumite">
           <div class="opp-head"><img id="opp-face" alt=""><span id="opp-name">さたろう</span><small id="opp-level">ふつう</small></div>
           <div class="ojama-bar" id="ojama-cpu"></div>
           <div class="field-wrap opp-field-wrap" id="opp-field-wrap">
@@ -147,7 +168,7 @@
           <div class="side-label">SCORE</div>
           <div class="side-value score" id="hud-score">0</div>
         </div>
-        <div class="side-box" data-modes="endless time allclear versus">
+        <div class="side-box" data-modes="endless time allclear versus kumite">
           <div class="side-label">れんさ</div>
           <div class="side-value"><span id="hud-chain">0</span><small> / MAX <span id="hud-max">0</span></small></div>
         </div>
@@ -163,8 +184,8 @@
           <div class="side-label">のこり ぷよ</div>
           <div class="side-value" id="hud-left">0</div>
         </div>
-        <div class="side-box vs-streak" data-modes="versus">
-          <div class="side-label">れんしょう</div>
+        <div class="side-box vs-streak" data-modes="versus kumite">
+          <div class="side-label" id="hud-streak-label">れんしょう</div>
           <div class="side-value" id="hud-streak">0</div>
         </div>
         <button class="pause-btn" id="btn-pause" aria-label="ポーズ">II</button>
@@ -187,6 +208,18 @@
         <button class="menu-btn c3" id="btn-quit"><span class="menu-title">メニューへ</span></button>
       </div>
     </div>
+
+    <!-- くみて：勝ったら次の相手 -->
+    <div class="modal" id="kumite-modal" hidden>
+      <div class="panel modal-panel kumite-panel">
+        <h2 id="kumite-title">3にんぬき！</h2>
+        <p class="hint" id="kumite-sub">つぎの あいては…</p>
+        <img class="kumite-face" id="kumite-face" alt="">
+        <div class="kumite-name"><small id="kumite-stage">4にんめ</small><b id="kumite-name">さたろう</b></div>
+        <button class="menu-btn c1" id="btn-kumite-next"><span class="menu-title">つぎへ</span></button>
+        <button class="link-btn" id="btn-kumite-stop">ここで やめる</button>
+      </div>
+    </div>
   </section>
 
   <!-- リザルト -->
@@ -200,13 +233,9 @@
         <div><span id="result-l1">さいだい れんさ</span><b id="result-chain">0</b></div>
         <div><span id="result-l2">おとした数</span><b id="result-pieces">0</b></div>
       </div>
-      <div class="rankin" id="rankin" hidden>
-        <p class="rankin-msg"><b id="rankin-pos">1</b>い ランクイン！なまえをいれてね</p>
-        <form id="name-form" class="name-form">
-          <input id="name-input" maxlength="10" autocomplete="off" placeholder="なまえ">
-          <button type="submit" class="menu-btn c1 small-btn"><span class="menu-title">とうろく</span></button>
-        </form>
-      </div>
+      <!-- ランキングは自動で登録（名前は せってい で変えられる） -->
+      <div class="rank-status" id="rank-status" hidden></div>
+      <button class="menu-btn c4" id="btn-share"><span class="menu-title">シェアする</span><span class="menu-sub">X・LINE・インスタ などに きろくを のせる</span></button>
       <div class="menu-row">
         <button class="menu-btn c2 half" id="btn-retry"><span class="menu-title" id="retry-label">もういちど</span></button>
         <button class="menu-btn c3 half" data-go="menu"><span class="menu-title">メニューへ</span></button>
@@ -219,11 +248,16 @@
   <section class="screen" id="screen-ranking" data-back="menu">
     <div class="panel wide-panel">
       <h2>ランキング</h2>
+      <div class="rank-scope" id="rank-scope">
+        <div class="seg" data-sub="scope">
+          <button data-val="online">ぜんこく</button><button data-val="local">じぶん</button>
+        </div>
+      </div>
       <div class="tabs" id="rank-tabs">
         <button data-tab="endless" class="active">とことん</button>
         <button data-tab="time">タイム</button>
         <button data-tab="allclear">ぜんけし</button>
-        <button data-tab="versus">たいせん</button>
+        <button data-tab="cpu">CPU</button>
       </div>
       <div class="rank-sub" id="rank-sub" hidden>
         <div class="seg" data-sub="preset">
@@ -233,6 +267,12 @@
           <button data-val="3">3</button><button data-val="4">4</button><button data-val="5">5</button>
         </div>
       </div>
+      <div class="rank-sub" id="rank-cpu" hidden>
+        <div class="seg" data-sub="cpu">
+          <button data-val="kumite">くみて</button><button data-val="versus">たいせん</button>
+        </div>
+      </div>
+      <p class="hint rank-note" id="rank-note" hidden></p>
       <ol class="rank-list" id="rank-list"></ol>
       <div class="menu-row">
         <button class="link-btn danger" id="btn-rank-reset">このランキングをけす</button>
@@ -258,6 +298,13 @@
   <section class="screen" id="screen-settings" data-back="menu">
     <div class="panel wide-panel">
       <h2>せってい</h2>
+      <div class="setting">
+        <span class="setting-name">なまえ</span>
+        <form class="name-form setting-name-form" id="settings-name-form">
+          <input id="settings-name" maxlength="10" autocomplete="off" placeholder="なまえ">
+          <button type="submit" class="seg-btn">かえる</button>
+        </form>
+      </div>
       <div class="setting">
         <span class="setting-name">ぷよの しゅるい</span>
         <div class="seg" data-key="colors">
@@ -298,6 +345,24 @@
         <span class="setting-name">おんりょう</span>
         <input type="range" id="volume" min="0" max="100" step="5">
       </div>
+      <div class="setting">
+        <span class="setting-name">データの ひきつぎ</span>
+        <div class="setting-btns">
+          <button class="seg-btn" id="btn-export">コードを コピー</button>
+          <button class="seg-btn" id="btn-import">コードを いれる</button>
+        </div>
+      </div>
+      <p class="hint setting-hint">きろく・じっせき・ずかんは この たんまつの ブラウザに ほぞんされる。きしゅへんこう のときは「コードを コピー」→ あたらしい たんまつで「コードを いれる」。</p>
+      <button class="menu-btn c3" data-go="menu"><span class="menu-title">もどる</span></button>
+    </div>
+  </section>
+
+  <!-- じっせき -->
+  <section class="screen" id="screen-achievements" data-back="menu">
+    <div class="panel wide-panel">
+      <h2>じっせき</h2>
+      <p class="hint"><b id="ach-count2">0</b> / <span id="ach-total2">0</span> かいじょ</p>
+      <div class="ach-list" id="ach-list"></div>
       <button class="menu-btn c3" data-go="menu"><span class="menu-title">もどる</span></button>
     </div>
   </section>
@@ -329,6 +394,8 @@
       <p>とことんモードで <b>100万点</b> 以上とって ゲームオーバーになると……？</p>
       <p><b>ぜんけしアタック</b>：フィールドの ぷよを ぜんぶ けすまでの タイムを きそう。「はいち あり」は さいしょから ぷよが おいてある。つみあがったら しっぱい。</p>
       <p><b>CPU たいせん</b>：れんさすると あいてに <b>おじゃまぷよ</b>（白黒の さたろう）が ふる。おじゃまは となりで ぷよが きえると いっしょに きえる。あいてから くる よこく（フィールドの上のマーク）は、じぶんの れんさで けせる（そうさい）。さきに つみあがったほうが まけ。</p>
+      <p><b>くみて</b>：さたろうたちと つぎつぎ たいせん。かつたびに あいてが どんどん強くなる。まけたら おわりで、なんにん かちぬいたかを きそう。</p>
+      <p><b>ランキング</b>：あそぶと じどうで のる（なまえは「せってい」で かえられる）。「ぜんこく」は みんなの きろく 100いまで。</p>
       <table class="keys">
         <tr><th>うごかす</th><td><kbd>←</kbd><kbd>→</kbd> / <kbd>A</kbd><kbd>D</kbd></td></tr>
         <tr><th>はやく おとす</th><td><kbd>↓</kbd> / <kbd>S</kbd></td></tr>
@@ -352,13 +419,50 @@
     </div>
   </div>
 
-  <script src="js/config.js?v=18"></script>
-  <script src="js/audio.js?v=18"></script>
-  <script src="js/game.js?v=18"></script>
-  <script src="js/presets.js?v=18"></script>
-  <script src="js/cpu.js?v=18"></script>
-  <script src="js/versus.js?v=18"></script>
-  <script src="js/ending.js?v=18"></script>
-  <script src="js/main.js?v=18"></script>
+  <!-- はじめて開いたときの なまえ -->
+  <div class="modal" id="name-modal" hidden>
+    <form class="panel modal-panel" id="first-name-form">
+      <h2>なまえを おしえて</h2>
+      <p class="hint">ランキングに のる なまえ（10もじまで）。あとで「せってい」から かえられる。</p>
+      <input class="big-input" id="first-name" maxlength="10" autocomplete="off" placeholder="なまえ">
+      <button type="submit" class="menu-btn c1"><span class="menu-title">けってい</span></button>
+    </form>
+  </div>
+
+  <!-- シェア -->
+  <div class="modal" id="share-modal" hidden>
+    <div class="panel modal-panel share-panel">
+      <h2>シェアする</h2>
+      <img class="share-image" id="share-image" alt="きろくの がぞう">
+      <textarea class="share-text" id="share-text" rows="4"></textarea>
+      <button class="menu-btn c1" id="share-native" hidden><span class="menu-title">スマホの きょうゆうメニューで おくる</span></button>
+      <div class="share-grid">
+        <a class="share-btn sns-x" id="share-x" target="_blank" rel="noopener">X</a>
+        <a class="share-btn sns-line" id="share-line" target="_blank" rel="noopener">LINE</a>
+        <a class="share-btn sns-threads" id="share-threads" target="_blank" rel="noopener">Threads</a>
+        <a class="share-btn sns-bsky" id="share-bsky" target="_blank" rel="noopener">Bluesky</a>
+        <a class="share-btn sns-fb" id="share-fb" target="_blank" rel="noopener">Facebook</a>
+        <button class="share-btn sns-copy" id="share-copy">コピー</button>
+      </div>
+      <button class="menu-btn c2" id="share-save"><span class="menu-title">がぞうを ほぞん</span></button>
+      <p class="hint share-hint">インスタ・TikTok は「がぞうを ほぞん」と「コピー」（ぶんしょう）をして、アプリで はりつけてね。iPhone は がぞうを ながおし でも ほぞん できる。</p>
+      <button class="link-btn" id="share-close">とじる</button>
+    </div>
+  </div>
+
+  <!-- じっせき かいじょ などの おしらせ -->
+  <div class="toast-layer" id="toast-layer" aria-live="polite"></div>
+
+  <script src="js/config.js?v=19"></script>
+  <script src="js/audio.js?v=19"></script>
+  <script src="js/game.js?v=19"></script>
+  <script src="js/presets.js?v=19"></script>
+  <script src="js/cpu.js?v=19"></script>
+  <script src="js/versus.js?v=19"></script>
+  <script src="js/online.js?v=19"></script>
+  <script src="js/share.js?v=19"></script>
+  <script src="js/achievements.js?v=19"></script>
+  <script src="js/ending.js?v=19"></script>
+  <script src="js/main.js?v=19"></script>
 </body>
 </html>

@@ -91,6 +91,26 @@ window.GAME_CONFIG = {
     },
   },
 
+  // くみて（CPU と かちぬき戦）。order は出てくる相手の顔の順番（faces の何番目か。1 から）。最後まで行ったら最初にもどる
+  // 名前は faces の name。強さは 1・2人目がよわい、3・4人目がふつう、5人目から つよい で、そこから どんどん強くなる
+  kumite: {
+    order: [16, 11, 4, 7, 2, 13, 3, 9, 6, 12, 1, 15, 10, 5, 14, 8],
+  },
+
+  // オンラインランキング（Supabase）。url と key を入れると「ぜんこく」ランキングが使える（くわしくは README）
+  // key は「公開してよいキー」（Publishable key / anon key）。service_role / secret のキーは絶対に入れない
+  online: {
+    url: '',
+    key: '',
+  },
+
+  // スコアのシェア
+  share: {
+    url: 'https://satapuyo.com/',
+    hashtags: ['さたぷよ'],
+    catch: 'さたろうの顔が落ちてくる ぷよぷよ風パズル「さたぷよ」。ブラウザですぐ遊べるよ！',
+  },
+
   // エンディング：とことんモードで minScore 点以上とってゲームオーバーになると流れる（一度見たらメニューから見返せる）
   // CAST には上の faces の name・role・comment が順に出る
   ending: {

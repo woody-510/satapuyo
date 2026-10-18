@@ -26,7 +26,7 @@
     attach(me, cpu) {
       this.me = me;
       this.cpu = cpu;
-      for (const g of [me, cpu]) this.side.set(g, { carry: 0, allClear: false });
+      for (const g of [me, cpu]) this.side.set(g, { carry: 0, allClear: false, sent: 0 });
       this.ai = new CpuPlayer(cpu, this.level, me);
     }
 
@@ -66,6 +66,7 @@
       o.wait -= b;
       n -= b;
       if (n > 0) this.rival(g).ojama.wait += n;
+      s.sent += n; // 相手に送ったおじゃまの合計（じっせき用）
     }
 
     // 連鎖が終わったら、相手に送ったぶんが「次に降る」になる
@@ -78,6 +79,10 @@
 
     over(g, reason) {
       if (reason === 'gameover') this.dead.add(g);
+    }
+
+    sentBy(g) {
+      return this.side.get(g)?.sent || 0;
     }
 
     get started() {
