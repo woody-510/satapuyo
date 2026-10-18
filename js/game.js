@@ -42,6 +42,10 @@ class PuyoGame {
     this.ojama = { ready: 0, wait: 0 }; // ready: 次に降る / wait: 相手の連鎖が終わったら ready になる
     this.dropped = false;
     this.allClears = 0; // ぜんけしした回数（じっせき用）
+    this.chainLog = []; // れんさするたびの れんさ数（シェアの画像のグラフ用）
+    this.popped = 0; // けした ぷよの数（おじゃまはのぞく）
+    this.chainScore = 0; // いまの れんさで入った点
+    this.bestChainScore = 0; // いちばん点が入った れんさ
 
     this.grid = Array.from({ length: ROWS }, () => Array(COLS).fill(null));
     if (initialGrid) {
@@ -432,6 +436,7 @@ class PuyoGame {
       bonus += COLOR_BONUS[types.size - 1];
       const gain = count * 10 * Math.min(Math.max(bonus, 1), 999);
       this.score += gain;
+      this.chainScore += gain;
       const cs = this.cs;
       this.sfx('pop', this.chain);
       if (this.chain >= 3) this.shake = Math.min(0.15 + this.chain * 0.05, 0.6);
@@ -453,7 +458,12 @@ class PuyoGame {
     }
     if (this.chain > 0 && this.cb.chainEnd) this.cb.chainEnd(this.chain);
     if (this.chain > 0 && this.cb.chainDone) this.cb.chainDone(this.chain, cleared);
+    if (this.chain > 0) {
+      this.chainLog.push(this.chain);
+      this.bestChainScore = Math.max(this.bestChainScore, this.chainScore);
+    }
     this.chain = 0;
+    this.chainScore = 0;
     if (cleared && this.mode === 'allclear') return this.finish('clear');
     // 連鎖が終わったら、たまっているおじゃまぷよが降る（1手につき1回）
     if (!this.dropped && this.ojama.ready > 0) {
@@ -476,6 +486,7 @@ class PuyoGame {
         if (!garbage) {
           const id = this.faceIds[c.t];
           this.popStats[id] = (this.popStats[id] || 0) + 1;
+          this.popped++;
         }
         for (let i = 0; i < (garbage ? 4 : 7); i++) {
           const a = Math.random() * TAU, sp = (2 + Math.random() * 4) * cs;
@@ -571,6 +582,7 @@ class PuyoGame {
             score: this.score, maxChain: this.maxChain, pieces: this.pieces,
             reason: this.reason, popStats: this.popStats, time: this.elapsed, allClears: this.allClears,
             board: { grid: this.finalGrid, sprites: this.sprites, garbage: this.garbageSprite },
+            chainLog: this.chainLog, popped: this.popped, bestChainScore: this.bestChainScore,
           });
         }
         break;

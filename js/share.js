@@ -1,5 +1,5 @@
 // スコアのシェア：SNS ごとの投稿リンク・コピー用の文章・きろくの画像を作る
-//   画像は よこ（ポスト用 1200x630）と たて（ストーリー用 1080x1920）
+//   画像は よこ（ポスト用 1200x675）と たて（ストーリー用 1080x1920）
 const Share = (() => {
   const CFG = window.GAME_CONFIG;
   const S = CFG.share || {};
@@ -210,33 +210,108 @@ const Share = (() => {
     if (d.unit) text(g, d.unit, left + w + 14, y, Math.round(size * 0.34), SOFT, 'left');
   }
 
-  // よこ（ポスト用）
+  // 称号（しょうごう）のバッジ
+  function badge(g, x, y, h, label, align = 'left') {
+    font(g, h * 0.5);
+    const w = g.measureText(label).width + h * 1.1;
+    const left = align === 'center' ? x - w / 2 : x;
+    roundRect(g, left, y, w, h, h / 2);
+    g.fillStyle = '#ffb703';
+    g.fill();
+    g.lineWidth = 3;
+    g.strokeStyle = '#fff';
+    g.stroke();
+    text(g, label, left + w / 2, y + h * 0.7, h * 0.5, INK, 'center', w, 900);
+    return w;
+  }
+
+  // 小さい数字（ラベル + 値）
+  function miniStat(g, x, y, w, h, label, value) {
+    roundRect(g, x, y, w, h, Math.min(16, h * 0.3));
+    g.fillStyle = 'rgba(122, 92, 150, 0.12)';
+    g.fill();
+    text(g, label, x + w / 2, y + h * 0.4, h * 0.26, SOFT, 'center', w - 10, 800);
+    text(g, String(value), x + w / 2, y + h * 0.84, h * 0.38, INK, 'center', w - 10, 900);
+  }
+
+  // れんさの きろく：れんさするたびの れんさ数を ぼうグラフに（新しいほうが右）
+  const BAR_COLORS = ['#c9c9d3', '#7cc4ff', '#7cf29c', '#ffe066', '#ffb35c', '#ff9bd2', '#ff6b6b'];
+  function chainGraph(g, x, y, w, h, log) {
+    const head = log.length ? `れんさ の きろく（${log.length}かい・さいだい ${Math.max(...log)}れんさ）` : 'れんさ の きろく';
+    text(g, head, x, y + h * 0.2, h * 0.2, SOFT, 'left', w, 800);
+    const top = y + h * 0.3, gh = h * 0.7;
+    roundRect(g, x, top, w, gh, 10);
+    g.fillStyle = 'rgba(122, 92, 150, 0.08)';
+    g.fill();
+    if (!log.length) {
+      text(g, 'れんさ なし', x + w / 2, top + gh * 0.62, gh * 0.3, SOFT, 'center', w, 800);
+      return;
+    }
+    const list = log.slice(-40);
+    const max = Math.max(4, ...list);
+    const slot = (w - 12) / Math.max(list.length, 12);
+    const bw = Math.max(3, slot * 0.72);
+    list.forEach((n, i) => {
+      const bh = Math.max(4, ((gh - 10) * n) / max);
+      const bx = x + 6 + i * slot + (slot - bw) / 2, by = top + gh - 4 - bh;
+      roundRect(g, bx, by, bw, bh, Math.min(6, bw / 2));
+      g.fillStyle = BAR_COLORS[Math.min(n - 1, BAR_COLORS.length - 1)];
+      g.fill();
+      if (bw >= 16 && bh >= 20) text(g, String(n), bx + bw / 2, by + Math.min(bh - 4, bw * 0.9), Math.min(bw * 0.8, 22), INK, 'center', bw, 900);
+    });
+  }
+
+  // QRコード（ゲームのURL）
+  function qr(g, img, x, y, size, label) {
+    if (!ok(img)) return 0;
+    roundRect(g, x - 6, y - 6, size + 12, size + 12, 12);
+    g.fillStyle = '#fff';
+    g.fill();
+    g.imageSmoothingEnabled = false;
+    g.drawImage(img, x, y, size, size);
+    g.imageSmoothingEnabled = true;
+    if (label) text(g, label, x + size / 2, y + size + 26, 18, SOFT, 'center', size + 40, 800);
+    return size;
+  }
+
+  // よこ（ポスト用 1200x675）
   function landscape(d) {
-    const W = 1200, H = 630;
+    const W = 1200, H = 675;
     const c = document.createElement('canvas');
     c.width = W;
     c.height = H;
     const g = c.getContext('2d');
     background(g, W, H);
-    panel(g, 30, 30, W - 60, H - 60, 40);
-    drawBoard(g, d, 72, 66, 41.5);
-    const x0 = 360, x1 = W - 60, wR = x1 - x0;
-    if (ok(d.logo)) g.drawImage(d.logo, x0, 50, 210, (210 * d.logo.naturalHeight) / d.logo.naturalWidth);
-    text(g, d.mode, x0 + 230, 92, 32, SOFT, 'left', wR - 230);
-    text(g, `${d.name}  ・  ${d.date}`, x0 + 230, 132, 26, INK, 'left', wR - 230);
-    bigScore(g, d, x0, 270, 128, wR, 'left');
-    if (d.rankText) text(g, d.rankText, x0, 318, 30, '#2d5ec2', 'left', wR);
-    const n = Math.min(4, d.stats.length), gap = 12, cw = (wR - gap * (n - 1)) / n;
-    d.stats.slice(0, 4).forEach(([l, v], i) => chip(g, x0 + i * (cw + gap), 340, cw, 92, l, v, CHIP_COLORS[i]));
-    if (d.faces.length) {
-      text(g, 'よく けした さたろう', x0, 470, 20, SOFT, 'left');
-      faceCounts(g, d.faces, x0, 482, wR / 4, 24, 4);
+    panel(g, 24, 24, W - 48, H - 48, 40);
+    // 左：盤面 と QR
+    drawBoard(g, d, 64, 64, 41);
+    if (ok(d.qr)) {
+      qr(g, d.qr, 64, 572, 70);
+      text(g, 'スキャンで', 148, 598, 20, SOFT, 'left', 160, 800);
+      text(g, 'すぐ あそべる', 148, 626, 20, INK, 'left', 160, 900);
     }
-    urlBanner(g, x0, 548, wR, 50, true);
+    // 右
+    const x0 = 344, x1 = W - 60, wR = x1 - x0;
+    if (ok(d.logo)) g.drawImage(d.logo, x0, 46, 190, (190 * d.logo.naturalHeight) / d.logo.naturalWidth);
+    text(g, d.mode, x0 + 210, 82, 30, SOFT, 'left', wR - 210);
+    text(g, `${d.name}  ・  ${d.date}`, x0 + 210, 118, 24, INK, 'left', wR - 210);
+    let bx = x0;
+    if (d.badge) bx += badge(g, x0, 138, 38, `しょうごう：${d.badge}`) + 14;
+    // しょうごう の右に 順位、いちばん右に あそんだ回数・じっせき
+    if (d.meLine) text(g, d.meLine, x1, 166, 17, SOFT, 'right', 270, 800);
+    if (d.rankText) text(g, d.rankText, bx, 166, 24, '#2d5ec2', 'left', x1 - bx - (d.meLine ? 285 : 0), 900);
+    bigScore(g, d, x0, 288, 112, wR, 'left');
+    const n = Math.min(4, d.stats.length), gap = 12, cw = (wR - gap * (n - 1)) / n;
+    d.stats.slice(0, 4).forEach(([l, v], i) => chip(g, x0 + i * (cw + gap), 304, cw, 84, l, v, CHIP_COLORS[i]));
+    const m = Math.min(4, d.extra.length), mw = (wR - gap * (m - 1)) / Math.max(1, m);
+    d.extra.slice(0, 4).forEach(([l, v], i) => miniStat(g, x0 + i * (mw + gap), 398, mw, 54, l, v));
+    chainGraph(g, x0, 462, wR, 78, d.chainLog);
+    if (d.faces.length) faceCounts(g, d.faces, x0, 548, wR / 4, 19, 4);
+    urlBanner(g, x0, 596, wR, 40, true);
     return c;
   }
 
-  // たて（ストーリー用）。上下はアプリの表示にかくれやすいので、大事なものは まんなかに
+  // たて（ストーリー用 1080x1920）。上下はアプリの表示にかくれやすいので、大事なものは まんなかに
   function portrait(d) {
     const W = 1080, H = 1920;
     const c = document.createElement('canvas');
@@ -244,32 +319,44 @@ const Share = (() => {
     c.height = H;
     const g = c.getContext('2d');
     background(g, W, H);
-    panel(g, 40, 140, W - 80, H - 280, 56);
+    panel(g, 40, 120, W - 80, H - 220, 56);
     if (ok(d.logo)) {
-      const lw = 480, lh = (lw * d.logo.naturalHeight) / d.logo.naturalWidth;
-      g.drawImage(d.logo, (W - lw) / 2, 170, lw, lh);
+      const lw = 420, lh = (lw * d.logo.naturalHeight) / d.logo.naturalWidth;
+      g.drawImage(d.logo, (W - lw) / 2, 146, lw, lh);
     }
-    text(g, d.mode, W / 2, 400, 44, SOFT, 'center', W - 180);
-    text(g, `${d.name}  ・  ${d.date}`, W / 2, 452, 34, INK, 'center', W - 180);
-    bigScore(g, d, W / 2, 660, 180, W - 180, 'center');
-    if (d.rankText) text(g, d.rankText, W / 2, 742, 42, '#2d5ec2', 'center', W - 180);
+    text(g, d.mode, W / 2, 352, 42, SOFT, 'center', W - 180);
+    text(g, `${d.name}  ・  ${d.date}`, W / 2, 402, 32, INK, 'center', W - 180);
+    if (d.badge) badge(g, W / 2, 428, 54, `しょうごう：${d.badge}`, 'center');
+    bigScore(g, d, W / 2, 652, 170, W - 180, 'center');
+    text(g, d.rankText || '', W / 2, 716, 40, '#2d5ec2', 'center', W - 180, 900);
     // 盤面（左）と 数字（右）
-    const cs = 56, top = 800;
-    drawBoard(g, d, 104, top, cs);
-    const x0 = 104 + cs * 6 + 48, wR = W - 90 - x0;
-    d.stats.slice(0, 4).forEach(([l, v], i) => chip(g, x0, top + i * 124, wR, 110, l, v, CHIP_COLORS[i]));
+    const cs = 52, top = 760;
+    drawBoard(g, d, 96, top, cs);
+    const x0 = 96 + cs * 6 + 44, wR = W - 96 - x0;
+    d.stats.slice(0, 4).forEach(([l, v], i) => chip(g, x0, top + i * 106, wR, 96, l, v, CHIP_COLORS[i]));
+    const mw = (wR - 10) / 2;
+    d.extra.slice(0, 4).forEach(([l, v], i) => miniStat(g, x0 + (i % 2) * (mw + 10), top + 434 + Math.floor(i / 2) * 76, mw, 66, l, v));
+    if (d.meLine) text(g, d.meLine, x0 + wR / 2, top + 614, 24, SOFT, 'center', wR, 800);
+    // れんさの きろく・よく消した さたろう
+    chainGraph(g, 96, 1414, W - 192, 120, d.chainLog);
     if (d.faces.length) {
-      text(g, 'よく けした さたろう', x0, top + 530, 26, SOFT, 'left', wR);
-      faceCounts(g, d.faces, x0, top + 548, wR / 2, 32, 2);
+      text(g, 'よく けした さたろう', 96, 1574, 24, SOFT, 'left', 400, 800);
+      faceCounts(g, d.faces, 96, 1588, (W - 192) / 4, 28, 4);
     }
-    urlBanner(g, 100, 1556, W - 200, 96, false);
-    text(g, S.catch || '', W / 2, 1712, 32, INK, 'center', W - 200, 800);
-    text(g, tagText(), W / 2, 1758, 34, SOFT, 'center', W - 200, 900);
+    // URL と QR
+    const qs = 132;
+    qr(g, d.qr, W - 96 - qs, 1660, qs);
+    urlBanner(g, 96, 1676, W - 192 - qs - 30, 76, false);
+    text(g, `${S.catch || ''}  ${tagText()}`, 96 + (W - 192 - qs - 30) / 2, 1784, 22, SOFT, 'center', W - 192 - qs - 30, 800);
     return c;
   }
 
-  // d: { mode, name, date, big, unit, rankText, stats: [[ラベル, 値]...], board, face, faces: [{ img, count }], stamp, logo, fieldBg }
-  const card = (d, format = 'wide') => (format === 'story' ? portrait(d) : landscape(d));
+  // d: { mode, name, date, big, unit, badge, rankText, meLine, stats: [[ラベル, 値]...], extra: [[ラベル, 値]...], chainLog,
+  //      board, face, faces: [{ img, count }], stamp, logo, fieldBg, qr }
+  function card(d, format = 'wide') {
+    d = { stats: [], extra: [], chainLog: [], faces: [], ...d };
+    return format === 'story' ? portrait(d) : landscape(d);
+  }
 
   return { url, links, fullText, card };
 })();

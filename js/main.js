@@ -854,17 +854,36 @@
     const top = Object.entries(r.popStats).sort((a, b) => b[1] - a[1])[0];
     return top ? top[0] : CFG.faces[rnd(CFG.faces.length)].src;
   }
-  // シェアの画像に使う中身（盤面・よく消した顔とその数・名前・日付）
+  // シェアの画像に使う中身（盤面・よく消した顔とその数・名前・日付・れんさの きろく など）
   function makeShare(r, o) {
     const d = new Date();
+    const mins = r && r.time ? r.time / 60 : 0;
+    const log = (r && r.chainLog) || [];
     return {
       ...o,
       name: playerName(),
-      date: `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`,
+      date: `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`,
       board: r ? r.board : null,
       faces: r ? Object.entries(r.popStats).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([src, count]) => ({ src, count })) : [],
+      chainLog: o.chainLog || log,
+      extra: o.extra || (r ? [
+        ['けした ぷよ', `${r.popped || 0}こ`],
+        ['れんさ した かず', `${log.length}かい`],
+        ['いちばん おおきい れんさ', `${(r.bestChainScore || 0).toLocaleString()}てん`],
+        ['スピード', mins > 0.05 ? `${Math.round(r.pieces / mins)}て/ぷん` : '-'],
+      ] : []),
     };
   }
+
+  // 称号（しょうごう）：記録に合わせて 画像にのせる
+  const TITLES = {
+    endless: [[1000000, 'でんせつの さたぷよ'], [500000, 'さたぷよ めいじん'], [200000, 'れんさ マスター'], [50000, 'れんさ つかい'], [10000, 'ぷよ ずき'], [0, 'みならい']],
+    time: [[200000, 'タイムアタックの かみ'], [100000, 'スピード スター'], [50000, 'はやわざ し'], [20000, 'いそぎあし'], [0, 'のんびりや']],
+    kumite: [[30, 'さたろう ハンター'], [20, 'くみての かみ'], [10, 'くみての たつじん'], [5, 'かちぬき じまん'], [2, 'ちょうせんしゃ'], [0, 'しゅぎょう中']],
+    versus: [[10, 'むてきの おうじゃ'], [5, 'れんしょう ばんちょう'], [3, 'いきおい あり'], [1, 'しょうりしゃ'], [0, 'リベンジ まち']],
+  };
+  const titleOf = (kind, v) => (TITLES[kind].find(([min]) => v >= min) || [0, ''])[1];
+  const acTitle = (ok, t) => (!ok ? 'ぜんけし ちょうせんしゃ' : t <= 20 ? 'ぜんけしの かみ' : t <= 40 ? 'ぜんけし めいじん' : t <= 90 ? 'ぜんけし じょうず' : 'ぜんけし みならい');
 
   // リザルト画面の中身をうめる（big は大きく出す数字や文字）
   function fillResult({ title, mode, big, unit, l1, v1, l2, v2, face, retry = 'もういちど', retryNew = false }) {
@@ -981,6 +1000,7 @@
       big: r.score.toLocaleString(), unit: 'てん',
       stats: [['さいだい れんさ', `${r.maxChain}れんさ`], ['おとした数', `${r.pieces}こ`], ['ぜんけし', `${r.allClears || 0}かい`], ['プレイ じかん', fmtTime(r.time)]],
       stamp: r.reason === 'timeup' ? 'TIME UP!' : 'ばたんきゅ〜',
+      badge: titleOf(mode, r.score),
       face: topFace(r),
     });
     if (r.score > 0) recordScore(mode, r.score, { chain: r.maxChain });
@@ -1009,6 +1029,7 @@
       mode: acName(opts.preset, opts.n), big: ok ? fmtClock(r.time) : 'ちょうせん中', unit: '',
       stats: [['さいだい れんさ', `${r.maxChain}れんさ`], ['おとした数', `${r.pieces}こ`], ['ぷよの しゅるい', `${opts.n}しゅるい`], ['はいち', opts.preset ? 'あり' : 'なし']],
       stamp: ok ? 'ぜんけし!!' : 'ばたんきゅ〜', stampColor: ok ? '#ffb703' : null,
+      badge: acTitle(ok, r.time),
       face: topFace(r),
     });
     if (ok) recordScore(acKey(opts.preset, opts.n), r.time, { chain: r.maxChain, pieces: r.pieces });
@@ -1052,6 +1073,7 @@
       big: result === 'win' ? String(rec.streak) : 'まけ…', unit: result === 'win' ? 'れんしょう' : '',
       stats: [['さいだい れんさ', `${r.maxChain}れんさ`], ['おくった おじゃま', `${sent}こ`], ['しあい じかん', fmtTime(r.time)], ['さいこう れんしょう', rec.best]],
       stamp: { win: 'かち!!', lose: 'まけ…', draw: 'ひきわけ' }[result], stampColor: result === 'win' ? '#2fbf6f' : null,
+      badge: titleOf('versus', rec.streak),
       face: prof.src,
     });
     show('result');
@@ -1062,7 +1084,13 @@
   // 勝ったら次の相手、ひきわけなら同じ相手ともう一度、負けたらおわり
   function kumiteNext(r, v, sent) {
     const result = v.result || 'lose';
-    const opts = { ...lastOpts, maxChain: Math.max(lastOpts.maxChain || 0, r.maxChain) };
+    const opts = {
+      ...lastOpts,
+      maxChain: Math.max(lastOpts.maxChain || 0, r.maxChain),
+      chainLog: [...(lastOpts.chainLog || []), ...(r.chainLog || [])],
+      popped: (lastOpts.popped || 0) + (r.popped || 0),
+      bestChainScore: Math.max(lastOpts.bestChainScore || 0, r.bestChainScore || 0),
+    };
     if (result === 'lose') return endKumite(opts, r);
     const next = result === 'win' ? { ...opts, stage: opts.stage + 1, wins: opts.wins + 1 } : opts;
     checkAchievements(gameEvent('kumite', r, { kumiteWins: next.wins, sent }));
@@ -1112,6 +1140,14 @@
       mode: 'くみて（かちぬき戦）', big: String(wins), unit: 'にんぬき',
       stats: [['さいだい れんさ', `${opts.maxChain || 0}れんさ`], [quit ? 'さいごの あいて' : 'まけた あいて', prof.name], ['さいこう きろく', `${kumiteRec.best}にん`], ['ちょうせん', `${kumiteRec.runs}かいめ`]],
       stamp: quit ? 'おわり' : 'まけ…',
+      badge: titleOf('kumite', wins),
+      chainLog: opts.chainLog,
+      extra: [
+        ['かちぬいた あいて', `${wins}にん`],
+        ['けした ぷよ', `${opts.popped || 0}こ`],
+        ['れんさ した かず', `${(opts.chainLog || []).length}かい`],
+        ['いちばん おおきい れんさ', `${(opts.bestChainScore || 0).toLocaleString()}てん`],
+      ],
       face: prof.src,
     });
     if (wins > 0) recordScore('kumite', wins, { chain: opts.maxChain || 0 });
@@ -1130,6 +1166,7 @@
   // ---------------- シェア ----------------
   const imgOf = (src) => faceImgs[CFG.faces.findIndex((f) => f.src === src)] || Object.assign(new Image(), { src });
   const fieldBgImg = Object.assign(new Image(), { src: CFG.images.fieldBg });
+  const qrImg = Object.assign(new Image(), { src: 'assets/ui/qr.png' }); // satapuyo.com の QR（tools/make_qr.py で作成）
   const isTouch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
   let shareFile = null, shareUrl = '', shareFormat = 'wide';
 
@@ -1149,7 +1186,8 @@
     if (document.fonts && document.fonts.ready) await Promise.race([document.fonts.ready, new Promise((ok) => setTimeout(ok, 1500))]);
     const rankText = [s.rank ? `ぜんこく ${s.rank}い！` : '', s.local || ''].filter(Boolean).join('  ・  ');
     const c = Share.card({
-      ...s, rankText, stats: s.stats || [], logo: logoImg, fieldBg: fieldBgImg,
+      ...s, rankText, stats: s.stats || [], logo: logoImg, fieldBg: fieldBgImg, qr: qrImg,
+      meLine: `あそんだ かいすう ${stats.plays || 0}かい  ・  じっせき ${Object.keys(achieved).length}/${ACHIEVEMENTS.length}`,
       face: imgOf(s.face), faces: (s.faces || []).map((f) => ({ img: imgOf(f.src), count: f.count })),
     }, shareFormat);
     const blob = await new Promise((ok) => c.toBlob(ok, 'image/png'));
