@@ -152,6 +152,96 @@ h2 {
 .c6 { --bc: var(--c6); --bd: var(--c6d); }
 .c7 { --bc: var(--c7); --bd: var(--c7d); }
 
+/* ---------- メニュー：メインのモード・ほかのモード（2x2）・そのほか（小さいボタン） ---------- */
+.menu-main { padding: 14px 16px; }
+.menu-main .menu-title { font-size: 26px; }
+.menu-main .menu-sub { font-size: 14px; }
+.menu-panel .logo-small { width: min(56vw, 240px); margin-bottom: 8px; }
+.mode-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 18px; }
+.mode-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  min-height: 88px;
+  padding: 8px 6px;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  border-radius: 18px;
+  color: #fff;
+  background: var(--bc, var(--c3));
+  box-shadow: 0 6px 0 var(--bd, var(--c3d));
+  text-shadow: 0 2px 0 rgba(0, 0, 0, 0.2);
+  transition: transform 0.08s, box-shadow 0.08s, filter 0.15s;
+}
+.mode-tile:hover { filter: brightness(1.08); }
+.mode-tile:active { transform: translateY(5px); box-shadow: 0 1px 0 var(--bd, var(--c3d)); }
+.mode-tile:focus-visible { outline: 4px solid var(--ink); outline-offset: 3px; }
+.tile-icon { font-size: 26px; line-height: 1.1; text-shadow: none; }
+.tile-title { font-size: 18px; font-weight: 900; letter-spacing: 0.02em; white-space: nowrap; }
+.tile-sub { font-size: 12px; font-weight: 500; opacity: 0.95; white-space: nowrap; }
+.tile-sub b { font-weight: 900; }
+.sub-menu { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 8px; }
+.sub-btn {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 0;
+  padding: 8px 4px;
+  border: 2px solid rgba(122, 92, 150, 0.22);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.85);
+  color: var(--ink);
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+  box-shadow: 0 3px 0 rgba(58, 35, 80, 0.12);
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.sub-btn:active { transform: translateY(3px); box-shadow: none; }
+.sub-btn:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.sub-icon { font-size: 22px; line-height: 1.2; }
+/* じっせきの数は 右上の小さいバッジ */
+.sub-btn small {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--c2);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 900;
+  line-height: 1.6;
+}
+.sub-ending {
+  width: 100%;
+  flex-direction: row;
+  margin-bottom: 4px;
+  padding: 8px;
+  border-color: #fff;
+  background: var(--c4);
+  color: #fff;
+  font-size: 15px;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 0 var(--c4d);
+}
+@media (max-width: 480px) {
+  .menu-main { padding: 10px 16px; margin-bottom: 12px; }
+  .mode-grid { gap: 10px; margin-bottom: 14px; }
+  .sub-menu { gap: 6px; }
+  .sub-btn { padding: 6px 4px; }
+  .menu-panel .link-btn { padding: 4px 8px; }
+}
+@media (max-width: 360px) {
+  .tile-title { font-size: 16px; }
+  .sub-btn { font-size: 12px; }
+}
+
 .menu-row { display: flex; gap: 12px; align-items: center; }
 .menu-row .half { flex: 1; }
 .menu-row .link-btn { flex: 1; }

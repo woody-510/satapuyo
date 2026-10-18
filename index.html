@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=19">
+  <link rel="stylesheet" href="css/style.css?v=20">
 </head>
 <body>
   <div id="bg" aria-hidden="true">
@@ -46,48 +46,44 @@
     <div class="panel menu-panel">
       <img class="logo logo-small" alt="さたぷよ">
       <div class="menu-list">
-        <button class="menu-btn c1" data-mode="endless">
+        <!-- メインのモード -->
+        <button class="menu-btn c1 menu-main" data-mode="endless">
           <span class="menu-title">とことんモード</span>
-          <span class="menu-sub">つみあがるまで ずっと / ベスト <b id="best-endless">0</b></span>
+          <span class="menu-sub">ベスト <b id="best-endless">0</b> てん</span>
         </button>
-        <button class="menu-btn c2" data-mode="time">
-          <span class="menu-title">タイムアタック</span>
-          <span class="menu-sub"><span id="ta-seconds">120</span>びょうで スコアかせぎ / ベスト <b id="best-time">0</b></span>
-        </button>
-        <button class="menu-btn c6" data-go="allclear">
-          <span class="menu-title">ぜんけしアタック</span>
-          <span class="menu-sub">ぜんぶ けすまでの タイムを きそう</span>
-        </button>
-        <button class="menu-btn c5" data-go="versus">
-          <span class="menu-title">CPU たいせん</span>
-          <span class="menu-sub">さたろうと しょうぶ / さいこう <b id="best-versus">0</b>れんしょう</span>
-        </button>
-        <button class="menu-btn c1" data-mode="kumite">
-          <span class="menu-title">くみて</span>
-          <span class="menu-sub">さたろうと かちぬき戦。どんどん強くなる / ベスト <b id="best-kumite">0</b>にんぬき</span>
-        </button>
-        <div class="menu-row">
-          <button class="menu-btn c3 half" data-go="ranking"><span class="menu-title">ランキング</span></button>
-          <button class="menu-btn c4 half" data-go="gallery"><span class="menu-title">ずかん</span></button>
-        </div>
-        <div class="menu-row">
-          <button class="menu-btn c5 half" data-go="settings"><span class="menu-title">せってい</span></button>
-          <button class="menu-btn c6 half" data-go="howto"><span class="menu-title">あそびかた</span></button>
-        </div>
-        <div class="menu-row">
-          <button class="menu-btn c2 half" data-go="achievements">
-            <span class="menu-title">じっせき</span>
-            <span class="menu-sub"><b id="ach-count">0</b> / <span id="ach-total">0</span></span>
+        <!-- ほかのモード（2x2） -->
+        <div class="mode-grid">
+          <button class="mode-tile c2" data-mode="time">
+            <span class="tile-icon" aria-hidden="true">⏱️</span>
+            <span class="tile-title">タイムアタック</span>
+            <span class="tile-sub">ベスト <b id="best-time">0</b></span>
           </button>
-          <button class="menu-btn c7 half" data-go="credits">
-            <span class="menu-title">♪ おんがく</span>
-            <span class="menu-sub">BGM と YouTube</span>
+          <button class="mode-tile c6" data-go="allclear">
+            <span class="tile-icon" aria-hidden="true">✨</span>
+            <span class="tile-title">ぜんけし</span>
+            <span class="tile-sub">タイムを きそう</span>
+          </button>
+          <button class="mode-tile c5" data-go="versus">
+            <span class="tile-icon" aria-hidden="true">⚔️</span>
+            <span class="tile-title">CPU たいせん</span>
+            <span class="tile-sub">さいこう <b id="best-versus">0</b>れんしょう</span>
+          </button>
+          <button class="mode-tile c3" data-mode="kumite">
+            <span class="tile-icon" aria-hidden="true">🥋</span>
+            <span class="tile-title">くみて</span>
+            <span class="tile-sub">ベスト <b id="best-kumite">0</b>にんぬき</span>
           </button>
         </div>
-        <button class="menu-btn c4" id="btn-ending" hidden>
-          <span class="menu-title">★ エンディング</span>
-          <span class="menu-sub">100万点の、その先で見たもの</span>
-        </button>
+        <!-- そのほか（小さいボタン 3x2） -->
+        <div class="sub-menu">
+          <button class="sub-btn" data-go="ranking"><span class="sub-icon" aria-hidden="true">🏆</span>ランキング</button>
+          <button class="sub-btn" data-go="achievements"><span class="sub-icon" aria-hidden="true">🎖️</span>じっせき<small><b id="ach-count">0</b>/<span id="ach-total">0</span></small></button>
+          <button class="sub-btn" data-go="gallery"><span class="sub-icon" aria-hidden="true">📖</span>ずかん</button>
+          <button class="sub-btn" data-go="settings"><span class="sub-icon" aria-hidden="true">⚙️</span>せってい</button>
+          <button class="sub-btn" data-go="howto"><span class="sub-icon" aria-hidden="true">❓</span>あそびかた</button>
+          <button class="sub-btn" data-go="credits"><span class="sub-icon" aria-hidden="true">🎵</span>おんがく</button>
+        </div>
+        <button class="sub-btn sub-ending" id="btn-ending" hidden>★ エンディングを みる</button>
       </div>
       <button class="link-btn" data-go="title">タイトルへもどる</button>
     </div>
@@ -453,16 +449,16 @@
   <!-- じっせき かいじょ などの おしらせ -->
   <div class="toast-layer" id="toast-layer" aria-live="polite"></div>
 
-  <script src="js/config.js?v=19"></script>
-  <script src="js/audio.js?v=19"></script>
-  <script src="js/game.js?v=19"></script>
-  <script src="js/presets.js?v=19"></script>
-  <script src="js/cpu.js?v=19"></script>
-  <script src="js/versus.js?v=19"></script>
-  <script src="js/online.js?v=19"></script>
-  <script src="js/share.js?v=19"></script>
-  <script src="js/achievements.js?v=19"></script>
-  <script src="js/ending.js?v=19"></script>
-  <script src="js/main.js?v=19"></script>
+  <script src="js/config.js?v=20"></script>
+  <script src="js/audio.js?v=20"></script>
+  <script src="js/game.js?v=20"></script>
+  <script src="js/presets.js?v=20"></script>
+  <script src="js/cpu.js?v=20"></script>
+  <script src="js/versus.js?v=20"></script>
+  <script src="js/online.js?v=20"></script>
+  <script src="js/share.js?v=20"></script>
+  <script src="js/achievements.js?v=20"></script>
+  <script src="js/ending.js?v=20"></script>
+  <script src="js/main.js?v=20"></script>
 </body>
 </html>

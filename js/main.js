@@ -93,7 +93,6 @@
   });
   $('#field-wrap').style.backgroundImage = `url("${CFG.images.fieldBg}")`;
   $('#opp-field-wrap').style.backgroundImage = `url("${CFG.images.fieldBg}")`;
-  $('#ta-seconds').textContent = CFG.timeAttackSeconds;
 
   // ---------------- 背景（ゆっくり動いて切りかわる） ----------------
   const Bg = (() => {
