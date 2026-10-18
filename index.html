@@ -20,7 +20,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@500;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=20">
+  <link rel="stylesheet" href="css/style.css?v=21">
 </head>
 <body>
   <div id="bg" aria-hidden="true">
@@ -429,9 +429,12 @@
   <div class="modal" id="share-modal" hidden>
     <div class="panel modal-panel share-panel">
       <h2>シェアする</h2>
+      <div class="seg share-format" id="share-format">
+        <button data-val="wide" class="active">よこ（ポスト）</button><button data-val="story">たて（ストーリー）</button>
+      </div>
       <img class="share-image" id="share-image" alt="きろくの がぞう">
       <textarea class="share-text" id="share-text" rows="4"></textarea>
-      <button class="menu-btn c1" id="share-native" hidden><span class="menu-title">スマホの きょうゆうメニューで おくる</span></button>
+      <button class="menu-btn c1" id="share-native" hidden><span class="menu-title">がぞう＋ぶんしょうを おくる</span><span class="menu-sub">スマホの きょうゆうメニューで LINE・インスタ などへ</span></button>
       <div class="share-grid">
         <a class="share-btn sns-x" id="share-x" target="_blank" rel="noopener">X</a>
         <a class="share-btn sns-line" id="share-line" target="_blank" rel="noopener">LINE</a>
@@ -441,7 +444,7 @@
         <button class="share-btn sns-copy" id="share-copy">コピー</button>
       </div>
       <button class="menu-btn c2" id="share-save"><span class="menu-title">がぞうを ほぞん</span></button>
-      <p class="hint share-hint">インスタ・TikTok は「がぞうを ほぞん」と「コピー」（ぶんしょう）をして、アプリで はりつけてね。iPhone は がぞうを ながおし でも ほぞん できる。</p>
+      <p class="hint share-hint">スマホは「がぞうを ほぞん」→ メニューの「画像を保存」で しゃしんに はいる（がぞうを ながおし でもOK）。インスタ・TikTok のストーリーは「たて」を ほぞんして、「コピー」した ぶんしょうと いっしょに アプリで のせてね。</p>
       <button class="link-btn" id="share-close">とじる</button>
     </div>
   </div>
@@ -449,16 +452,16 @@
   <!-- じっせき かいじょ などの おしらせ -->
   <div class="toast-layer" id="toast-layer" aria-live="polite"></div>
 
-  <script src="js/config.js?v=20"></script>
-  <script src="js/audio.js?v=20"></script>
-  <script src="js/game.js?v=20"></script>
-  <script src="js/presets.js?v=20"></script>
-  <script src="js/cpu.js?v=20"></script>
-  <script src="js/versus.js?v=20"></script>
-  <script src="js/online.js?v=20"></script>
-  <script src="js/share.js?v=20"></script>
-  <script src="js/achievements.js?v=20"></script>
-  <script src="js/ending.js?v=20"></script>
-  <script src="js/main.js?v=20"></script>
+  <script src="js/config.js?v=21"></script>
+  <script src="js/audio.js?v=21"></script>
+  <script src="js/game.js?v=21"></script>
+  <script src="js/presets.js?v=21"></script>
+  <script src="js/cpu.js?v=21"></script>
+  <script src="js/versus.js?v=21"></script>
+  <script src="js/online.js?v=21"></script>
+  <script src="js/share.js?v=21"></script>
+  <script src="js/achievements.js?v=21"></script>
+  <script src="js/ending.js?v=21"></script>
+  <script src="js/main.js?v=21"></script>
 </body>
 </html>

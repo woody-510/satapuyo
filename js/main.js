@@ -154,6 +154,14 @@
     lastTap = e.timeStamp;
   }, { passive: false });
   document.addEventListener('dblclick', (e) => e.preventDefault());
+  // 長おしメニュー（画像の保存など）を出さない。シェアの画像と 文字の入力欄だけは そのまま
+  document.addEventListener('contextmenu', (e) => {
+    if (!e.target.closest('.share-image, input, textarea')) e.preventDefault();
+  });
+  // ゲーム中は 操作ボタンと盤面まわりの タッチの「長おし・スクロール」を止める（ボタンは pointer イベントで動くので大丈夫）
+  $('#screen-game').addEventListener('touchstart', (e) => {
+    if (e.target.closest('#touch-pad') || !e.target.closest('button, a, input, .modal')) e.preventDefault();
+  }, { passive: false });
 
   // ---------------- 画面切りかえ ----------------
   let screen = null;
@@ -846,7 +854,17 @@
     const top = Object.entries(r.popStats).sort((a, b) => b[1] - a[1])[0];
     return top ? top[0] : CFG.faces[rnd(CFG.faces.length)].src;
   }
-  const topFaces = (r) => Object.entries(r.popStats).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([src]) => src);
+  // シェアの画像に使う中身（盤面・よく消した顔とその数・名前・日付）
+  function makeShare(r, o) {
+    const d = new Date();
+    return {
+      ...o,
+      name: playerName(),
+      date: `${d.getFullYear()}/${d.getMonth() + 1}/${d.getDate()}`,
+      board: r ? r.board : null,
+      faces: r ? Object.entries(r.popStats).sort((a, b) => b[1] - a[1]).slice(0, 4).map(([src, count]) => ({ src, count })) : [],
+    };
+  }
 
   // リザルト画面の中身をうめる（big は大きく出す数字や文字）
   function fillResult({ title, mode, big, unit, l1, v1, l2, v2, face, retry = 'もういちど', retryNew = false }) {
@@ -890,6 +908,7 @@
     const local = document.createElement('span');
     local.textContent = pos === 0 ? 'じぶんベスト こうしん！' : pos > 0 ? `じぶんの きろく ${pos + 1}い` : 'じぶんの トップ10 には とどかず';
     box.appendChild(local);
+    if (lastShare && pos >= 0) lastShare.local = local.textContent;
     if (!Online.enabled) return;
     const net = document.createElement('span');
     net.className = 'net';
@@ -954,13 +973,16 @@
       l2: 'おとした数', v2: r.pieces,
       face: topFace(r),
     });
-    lastShare = {
+    lastShare = makeShare(r, {
       line: mode === 'time'
         ? `さたぷよ タイムアタック${secs}びょうで ${r.score.toLocaleString()}てん！（さいだい${r.maxChain}れんさ）`
         : `さたぷよ とことんモードで ${r.score.toLocaleString()}てん！（さいだい${r.maxChain}れんさ）`,
-      mode: MODE_NAME[mode], big: r.score.toLocaleString(), unit: 'てん', sub: `さいだい ${r.maxChain}れんさ`,
-      face: topFace(r), faces: topFaces(r),
-    };
+      mode: mode === 'time' ? `タイムアタック（${secs}びょう）` : MODE_NAME[mode],
+      big: r.score.toLocaleString(), unit: 'てん',
+      stats: [['さいだい れんさ', `${r.maxChain}れんさ`], ['おとした数', `${r.pieces}こ`], ['ぜんけし', `${r.allClears || 0}かい`], ['プレイ じかん', fmtTime(r.time)]],
+      stamp: r.reason === 'timeup' ? 'TIME UP!' : 'ばたんきゅ〜',
+      face: topFace(r),
+    });
     if (r.score > 0) recordScore(mode, r.score, { chain: r.maxChain });
     show('result');
     checkAchievements(gameEvent(mode, r));
@@ -980,13 +1002,15 @@
       retry: 'リトライ',
       retryNew: opts.preset,
     });
-    lastShare = {
+    lastShare = makeShare(r, {
       line: ok
         ? `さたぷよ ${acName(opts.preset, opts.n)}を ${fmtClock(r.time)} で クリア！`
         : `さたぷよ ${acName(opts.preset, opts.n)}に ちょうせん中…（さいだい${r.maxChain}れんさ）`,
-      mode: acName(opts.preset, opts.n), big: ok ? fmtClock(r.time) : 'ちょうせん中', unit: '', sub: `さいだい ${r.maxChain}れんさ / ${r.pieces}て`,
-      face: topFace(r), faces: topFaces(r),
-    };
+      mode: acName(opts.preset, opts.n), big: ok ? fmtClock(r.time) : 'ちょうせん中', unit: '',
+      stats: [['さいだい れんさ', `${r.maxChain}れんさ`], ['おとした数', `${r.pieces}こ`], ['ぷよの しゅるい', `${opts.n}しゅるい`], ['はいち', opts.preset ? 'あり' : 'なし']],
+      stamp: ok ? 'ぜんけし!!' : 'ばたんきゅ〜', stampColor: ok ? '#ffb703' : null,
+      face: topFace(r),
+    });
     if (ok) recordScore(acKey(opts.preset, opts.n), r.time, { chain: r.maxChain, pieces: r.pieces });
     show('result');
     checkAchievements(gameEvent('allclear', r, { preset: opts.preset, n: opts.n }));
@@ -1020,14 +1044,16 @@
       face: prof.src,
     });
     const vsName = `${LEVEL_NAME[v.level]} ${prof.name}`;
-    lastShare = {
+    lastShare = makeShare(r, {
       line: result === 'win'
         ? `さたぷよ CPU たいせんで「${vsName}」に かった！（${rec.streak}れんしょう中）`
         : `さたぷよ CPU たいせんで「${vsName}」に まけた…つぎは かつ！`,
-      mode: `CPU たいせん（${LEVEL_NAME[v.level]}）`,
+      mode: `CPU たいせん（${vsName}）`,
       big: result === 'win' ? String(rec.streak) : 'まけ…', unit: result === 'win' ? 'れんしょう' : '',
-      sub: `さいだい ${r.maxChain}れんさ`, face: prof.src, faces: topFaces(r),
-    };
+      stats: [['さいだい れんさ', `${r.maxChain}れんさ`], ['おくった おじゃま', `${sent}こ`], ['しあい じかん', fmtTime(r.time)], ['さいこう れんしょう', rec.best]],
+      stamp: { win: 'かち!!', lose: 'まけ…', draw: 'ひきわけ' }[result], stampColor: result === 'win' ? '#2fbf6f' : null,
+      face: prof.src,
+    });
     show('result');
     checkAchievements(gameEvent('versus', r, { result, level: v.level, sent }));
   }
@@ -1081,11 +1107,13 @@
       l2: 'さいこう', v2: `${kumiteRec.best}にん`,
       face: prof.src,
     });
-    lastShare = {
+    lastShare = makeShare(r, {
       line: `さたぷよ くみてで ${wins}にんぬき！（さいだい${opts.maxChain || 0}れんさ）`,
-      mode: 'くみて（かちぬき戦）', big: String(wins), unit: 'にんぬき', sub: `さいだい ${opts.maxChain || 0}れんさ`,
-      face: prof.src, faces: r ? topFaces(r) : [],
-    };
+      mode: 'くみて（かちぬき戦）', big: String(wins), unit: 'にんぬき',
+      stats: [['さいだい れんさ', `${opts.maxChain || 0}れんさ`], [quit ? 'さいごの あいて' : 'まけた あいて', prof.name], ['さいこう きろく', `${kumiteRec.best}にん`], ['ちょうせん', `${kumiteRec.runs}かいめ`]],
+      stamp: quit ? 'おわり' : 'まけ…',
+      face: prof.src,
+    });
     if (wins > 0) recordScore('kumite', wins, { chain: opts.maxChain || 0 });
     show('result');
   }
@@ -1101,7 +1129,9 @@
 
   // ---------------- シェア ----------------
   const imgOf = (src) => faceImgs[CFG.faces.findIndex((f) => f.src === src)] || Object.assign(new Image(), { src });
-  let shareFile = null, shareUrl = '';
+  const fieldBgImg = Object.assign(new Image(), { src: CFG.images.fieldBg });
+  const isTouch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+  let shareFile = null, shareUrl = '', shareFormat = 'wide';
 
   function setShareLinks() {
     const L = Share.links($('#share-text').value);
@@ -1112,47 +1142,74 @@
     $('#share-fb').href = L.fb;
   }
 
+  // 画像を作る（よこ / たて）。保存・送信用の File も ここで用意しておく（押したときに すぐ使えるように）
+  async function renderShareImage() {
+    const s = lastShare;
+    if (!s) return;
+    if (document.fonts && document.fonts.ready) await Promise.race([document.fonts.ready, new Promise((ok) => setTimeout(ok, 1500))]);
+    const rankText = [s.rank ? `ぜんこく ${s.rank}い！` : '', s.local || ''].filter(Boolean).join('  ・  ');
+    const c = Share.card({
+      ...s, rankText, stats: s.stats || [], logo: logoImg, fieldBg: fieldBgImg,
+      face: imgOf(s.face), faces: (s.faces || []).map((f) => ({ img: imgOf(f.src), count: f.count })),
+    }, shareFormat);
+    const blob = await new Promise((ok) => c.toBlob(ok, 'image/png'));
+    if (shareUrl.startsWith('blob:')) URL.revokeObjectURL(shareUrl);
+    shareUrl = blob ? URL.createObjectURL(blob) : c.toDataURL('image/png');
+    shareFile = blob && window.File ? new File([blob], `satapuyo-${shareFormat === 'story' ? 'story' : 'post'}.png`, { type: 'image/png' }) : null;
+    const img = $('#share-image');
+    img.classList.toggle('story', shareFormat === 'story');
+    img.src = shareUrl;
+  }
+
   async function openShare() {
     const s = lastShare;
     if (!s) return;
-    if (document.fonts && document.fonts.ready) await document.fonts.ready;
     const rank = s.rank ? `ぜんこく ${s.rank}い！` : '';
-    const c = Share.card({
-      mode: s.mode, big: s.big, unit: s.unit, sub: [s.sub, rank].filter(Boolean).join('  '),
-      face: imgOf(s.face), faces: (s.faces || []).map(imgOf), logo: logoImg,
-    });
-    shareUrl = c.toDataURL('image/png');
-    $('#share-image').src = shareUrl;
     $('#share-text').value = Share.fullText([s.line, rank].filter(Boolean).join(' '));
     setShareLinks();
-    shareFile = null;
     $('#share-native').hidden = !navigator.share;
-    c.toBlob((blob) => {
-      if (blob && window.File) shareFile = new File([blob], 'satapuyo.png', { type: 'image/png' });
-    }, 'image/png');
+    $$('#share-format button').forEach((b) => b.classList.toggle('active', b.dataset.val === shareFormat));
+    $('#toast-layer').textContent = ''; // おしらせが シェアの画面に かぶらないように
     $('#share-modal').hidden = false;
     $('#share-close').focus();
+    await renderShareImage();
   }
   $('#btn-share').addEventListener('click', () => {
     Sound.play('decide');
     openShare();
   });
+  $$('#share-format button').forEach((b) => b.addEventListener('click', () => {
+    shareFormat = b.dataset.val;
+    Sound.play('select');
+    $$('#share-format button').forEach((x) => x.classList.toggle('active', x === b));
+    renderShareImage();
+  }));
   $('#share-text').addEventListener('input', setShareLinks);
+  const canShareFile = () => !!(shareFile && navigator.share && navigator.canShare && navigator.canShare({ files: [shareFile] }));
   $('#share-native').addEventListener('click', async () => {
     const data = { text: $('#share-text').value };
-    if (shareFile && navigator.canShare && navigator.canShare({ files: [shareFile] })) data.files = [shareFile];
+    if (canShareFile()) data.files = [shareFile];
     try {
       await navigator.share(data);
     } catch {}
   });
   $('#share-copy').addEventListener('click', () => copyText($('#share-text').value, 'ぶんしょうを コピーしたよ'));
-  $('#share-save').addEventListener('click', () => {
+  // スマホは きょうゆうメニューを開く（iPhone は「画像を保存」で写真に入る）。PC はダウンロード
+  $('#share-save').addEventListener('click', async () => {
+    if (!shareUrl) return;
+    if (isTouch && canShareFile()) {
+      try {
+        await navigator.share({ files: [shareFile] });
+      } catch {}
+      return;
+    }
     const a = document.createElement('a');
     a.href = shareUrl;
-    a.download = 'satapuyo.png';
+    a.download = shareFile ? shareFile.name : 'satapuyo.png';
     document.body.appendChild(a);
     a.click();
     a.remove();
+    toast('💾', 'がぞうを ほぞん したよ');
   });
   $('#share-close').addEventListener('click', () => {
     $('#share-modal').hidden = true;

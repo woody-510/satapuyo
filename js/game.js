@@ -500,6 +500,8 @@ class PuyoGame {
     this.reason = reason;
     // 消えかけのぷよは途中で止まると変に見えるので消しておく
     for (const row of this.grid) row.forEach((c, x) => { if (c && c.pop) row[x] = null; });
+    // 終わったときの盤面（シェアの画像に使う）
+    this.finalGrid = this.grid.map((row) => row.map((c) => (c ? c.t : null)));
     // 終わりのボイスがあるときは、効果音を重ねない
     const voice = !this.quiet && Sound.hasVoice('end');
     if (reason === 'gameover') {
@@ -568,6 +570,7 @@ class PuyoGame {
           this.cb.end({
             score: this.score, maxChain: this.maxChain, pieces: this.pieces,
             reason: this.reason, popStats: this.popStats, time: this.elapsed, allClears: this.allClears,
+            board: { grid: this.finalGrid, sprites: this.sprites, garbage: this.garbageSprite },
           });
         }
         break;

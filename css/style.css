@@ -34,9 +34,11 @@ html, body {
 }
 
 button { font: inherit; color: inherit; cursor: pointer; }
+/* 画像の 長おしメニュー（保存・コピー）や ドラッグを出さない。シェアの画像だけは 長おしで保存できる */
+img { -webkit-touch-callout: none; -webkit-user-drag: none; user-drag: none; }
 
 /* ---------- 背景（transform と opacity だけ動かすので軽い） ---------- */
-#bg { position: fixed; inset: 0; overflow: hidden; background: #2c1e5c; }
+#bg { position: fixed; inset: 0; overflow: hidden; background: #2c1e5c; pointer-events: none; } /* 背景は さわれない（長おしで「画像を保存」が出ないように） */
 .bg-layer {
   position: absolute;
   inset: -6%;
@@ -548,6 +550,7 @@ h2 {
 }
 .modal[hidden] { display: none; }
 .modal-panel { max-width: 340px; }
+.modal .panel { background: #fff; } /* うしろの画面が すけて見えないように */
 
 /* ---------- リザルト ---------- */
 .result-panel h2 { font-size: 30px; }
@@ -898,11 +901,14 @@ kbd {
 .modal { overflow-y: auto; }
 .share-panel { max-width: 460px; padding: 18px; }
 .share-panel h2 { margin-bottom: 10px; }
+.share-format { display: inline-flex; margin-bottom: 10px; }
 .share-image {
   display: block;
-  width: 100%;
+  width: auto;
+  max-width: 100%;
+  max-height: 38vh;
+  margin: 0 auto 10px;
   border-radius: 14px;
-  margin-bottom: 10px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   -webkit-touch-callout: default; /* iPhone で ながおし して ほぞん できるように */
   -webkit-user-select: auto;
