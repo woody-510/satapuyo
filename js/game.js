@@ -4,8 +4,10 @@ const ROWS = 13; // y=0 は見えない13段目。y=1..12 が画面に見える
 const TAU = Math.PI * 2;
 const OFFS = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // 子ぷよの位置（上・右・下・左）
 const CHAIN_BONUS = [0, 8, 16, 32, 64, 96, 128, 160, 192, 224, 256, 288, 320, 352, 384, 416, 448, 480, 512];
-// とことんモードだけ：5連鎖目から増え方を大きく（+32 → +48）、11連鎖目からはさらに大きく（+112）。対戦・くみて・ほかのモードは上の表のまま
-const ENDLESS_CHAIN_BONUS = [0, 8, 16, 32, 80, 128, 176, 224, 272, 320, 432, 544, 656, 768, 880, 992];
+// とことんモードだけ：5連鎖目から増え方を大きく（1段ごとに +112）、11連鎖目からはさらに大きく（+144）。8連鎖で約5万点、10連鎖で約10万点（1回ぶん）。
+// 対戦・くみて・ほかのモードは上の表のまま
+const ENDLESS_CHAIN_BONUS = [0, 8, 16, 32, 128, 240, 352, 464, 576, 688, 832, 976, 1120, 1264, 1408, 1552, 1696, 1840, 1984];
+const ENDLESS_BONUS_CAP = 1999; // ボーナスの上限（ふつうは 999）
 const COLOR_BONUS = [0, 3, 6, 12, 24];
 const groupBonus = (n) => (n >= 11 ? 10 : [0, 0, 0, 0, 0, 2, 3, 4, 5, 6, 7][n]);
 
@@ -437,7 +439,7 @@ class PuyoGame {
         }
       }
       bonus += COLOR_BONUS[types.size - 1];
-      const gain = count * 10 * Math.min(Math.max(bonus, 1), 999);
+      const gain = count * 10 * Math.min(Math.max(bonus, 1), this.mode === 'endless' ? ENDLESS_BONUS_CAP : 999);
       this.score += gain;
       this.chainScore += gain;
       const cs = this.cs;
