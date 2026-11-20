@@ -8,7 +8,6 @@ window.drawStoryAds = async function () {
   const logo = await load(CFG.images.logo);
   const field = await load('ads/src/cap_field.png');
   const versus = await load('ads/src/cap_versus.png');
-  const URL_TEXT = CFG.share.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
 
   const W = 1080, H = 1920;
   const FONT = "'M PLUS Rounded 1c', 'Hiragino Maru Gothic ProN', sans-serif";
@@ -228,13 +227,12 @@ window.drawStoryAds = async function () {
     photo(g, versus, W / 2, 750, 880, 0.02);
     burst(g, ['おじゃま', 'ぷよ！'], 880, 880, 100, PINK, 0.2);
     title(g, 'いますぐ あそぼう！', W / 2, 1255, 104, PINK);
-    pill(g, '🔗 ' + URL_TEXT, W / 2, 1345, 96, '#fff', INK, W - 120);
-    text(g, 'むりょう ・ とうろく なし ・ アプリ いらない', W / 2, 1450, 40, '#fff', 'center', W - 140, 900);
+    text(g, 'むりょう ・ とうろく なし ・ アプリ いらない', W / 2, 1330, 40, '#fff', 'center', W - 140, 900);
     if (adVersion) {
-      title(g, '▼ 下の ボタンから すぐ あそべる ▼', W / 2, 1545, 46, GOLD, W - 120);
+      title(g, '▼ 下の ボタンから すぐ あそべる ▼', W / 2, 1440, 50, GOLD, W - 120);
     } else {
-      // この下に インスタの「リンク」スタンプを はる（なにも かかない）
-      title(g, '▼ リンクから すぐ あそべる ▼', W / 2, 1530, 50, GOLD, W - 120);
+      // この下（だいたい y=1450〜1620）は あけておく。インスタの「リンク」スタンプを あとで はる
+      title(g, '▼ リンクから すぐ あそべる ▼', W / 2, 1410, 50, GOLD, W - 120);
     }
     return c.toDataURL('image/png');
   }
