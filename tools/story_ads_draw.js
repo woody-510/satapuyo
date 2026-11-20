@@ -54,10 +54,16 @@ window.drawStoryAds = async function () {
   }
   // いちばん下の ちいさい注意書き（4まい全部）
   function note(g) {
+    const str = 'この作品はフィクションであり、実在の人物・団体・出来事などとは関係ありません';
+    const size = fitSize(g, str, 30, W - 100, 800);
+    font(g, size, 800);
+    const w = g.measureText(str).width + 48;
     g.save();
-    g.globalAlpha = 0.85;
-    text(g, 'この作品はフィクションであり、実在の人物・団体・出来事などとは関係ありません', W / 2, 1880, 22, '#fff', 'center', W - 80, 700);
+    g.fillStyle = 'rgba(30, 14, 50, 0.55)';
+    rr(g, (W - w) / 2, 1838, w, 56, 28);
+    g.fill();
     g.restore();
+    text(g, str, W / 2, 1877, size, '#fff', 'center', W - 100, 800);
   }
   function face(g, img, cx, cy, r, ring) {
     g.save();
