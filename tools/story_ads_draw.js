@@ -155,88 +155,175 @@ window.drawStoryAds = async function () {
     if (logo.naturalWidth) g.drawImage(logo, cx - w / 2, y, w, (w * logo.naturalHeight) / logo.naturalWidth);
   };
 
+  // 白いカードに アイコン・見出し・説明
+  function infoCard(g, x, y, w, h, icon, head, body, color) {
+    card(g, x, y, w, h);
+    const r = Math.min(h * 0.32, 46);
+    g.beginPath();
+    g.arc(x + r + 22, y + h / 2, r, 0, Math.PI * 2);
+    g.fillStyle = color;
+    g.fill();
+    font(g, r * 1.05);
+    g.textAlign = 'center';
+    g.fillText(icon, x + r + 22, y + h / 2 + r * 0.38);
+    const tx = x + r * 2 + 44, tw = w - (tx - x) - 20;
+    text(g, head, tx, y + h * 0.43, Math.min(44, h * 0.32), INK, 'left', tw, 900);
+    text(g, body, tx, y + h * 0.78, Math.min(28, h * 0.21), SOFT, 'left', tw, 800);
+  }
+  // 小さいタグ
+  function tag(g, label, x, y, h, color) {
+    font(g, h * 0.56);
+    const w = g.measureText(label).width + h * 0.8;
+    rr(g, x, y, w, h, h / 2);
+    g.fillStyle = color;
+    g.fill();
+    g.textAlign = 'center';
+    g.fillStyle = '#fff';
+    g.fillText(label, x + w / 2, y + h * 0.72);
+    return w;
+  }
+  // 大きい数字のタイル
+  function numTile(g, x, y, w, h, num, label, color) {
+    rr(g, x, y, w, h, 28);
+    g.fillStyle = color;
+    g.fill();
+    g.lineWidth = 5;
+    g.strokeStyle = '#fff';
+    g.stroke();
+    title(g, num, x + w / 2, y + h * 0.56, h * 0.42, '#fff', w - 20);
+    text(g, label, x + w / 2, y + h * 0.86, h * 0.17, '#fff', 'center', w - 16, 900);
+  }
+
   const out = {};
+  const COLORS = ['#ff4d6d', '#2fbf6f', '#4d8bff', '#ffb703', '#a66bff', '#ff8a3d'];
 
   // ---------- 1まいめ：つかみ ----------
   {
     const [c, g] = canvas();
     background(g, 1);
-    fallingFaces(g, [[110, 470, 70, 0], [960, 420, 80, 3], [90, 1010, 62, 5], [990, 930, 66, 8], [110, 1370, 70, 10], [985, 1080, 46, 13]]);
-    logoAt(g, W / 2, 250, 600);
-    title(g, 'さたろうの 顔が', W / 2, 590, 92, '#fff');
-    title(g, 'おちてくる！', W / 2, 725, 134, PINK);
-    pill(g, 'ぷよぷよ風 おちもの パズル', W / 2, 805, 84, '#fff', INK);
-    photo(g, field, W / 2, 1150, 300, -0.04);
-    burst(g, ['れんさで', 'ドカン！'], 220, 1080, 118, PINK, -0.15);
-    burst(g, ['顔は', '16にん'], 868, 1260, 112, GOLD, 0.14);
-    // 下：3つの ポイント
+    pill(g, '★ ブラウザで すぐ あそべる パズルゲーム ★', W / 2, 205, 70, GOLD, INK, W - 140);
+    logoAt(g, W / 2, 250, 500);
+    title(g, 'さたろうの 顔が', W / 2, 520, 84, '#fff');
+    title(g, 'おちてくる！', W / 2, 640, 122, PINK);
+    pill(g, 'ぷよぷよ風 おちもの パズル', W / 2, 712, 76, '#fff', INK);
+    // 左：ゲーム画面　右：ポイント4つ
+    photo(g, field, 222, 1070, 280, -0.03);
+    burst(g, ['3れんさ', 'ちゅう！'], 330, 800, 70, PINK, 0.18);
+    const points = [
+      ['😆', '顔が ぷよに！', '16にんの さたろうが おちてくる', COLORS[0]],
+      ['4️⃣', '4つで きえる', 'おなじ顔（わくの色）を 4つ以上', COLORS[1]],
+      ['💥', 'れんさで ドカン', '8れんさで 約5まんてん！', COLORS[2]],
+      ['🎮', '5つの モード', 'とことん・CPU たいせん など', COLORS[4]],
+    ];
+    points.forEach(([icon, head, body, col], i) => infoCard(g, 410, 790 + i * 146, 610, 132, icon, head, body, col));
+    // 数字
+    const nums = [['16にん', 'さたろう'], ['5つ', 'モード'], ['26こ', 'じっせき'], ['100い', 'ぜんこく ランキング']];
+    nums.forEach(([n, l], i) => numTile(g, 60 + i * 245, 1385, 225, 160, n, l, COLORS[[3, 0, 1, 2][i]]));
     const chips = ['むりょう', 'とうろく なし', 'スマホ・PC'];
-    chips.forEach((l, i) => pill(g, l, 200 + i * 340, 1530, 82, ['#2fbf6f', '#4d8bff', '#ff8a3d'][i], '#fff', 320));
+    chips.forEach((l, i) => pill(g, l, 200 + i * 340, 1610, 76, ['#2fbf6f', '#4d8bff', '#ff8a3d'][i], '#fff', 320));
+    text(g, '♪ オリジナル BGM ＆ さたろう本人の ボイス つき', W / 2, 1712, 36, '#fff', 'center', W - 120, 900);
     out.story1_tsukami = c.toDataURL('image/png');
   }
 
-  // ---------- 2まいめ：モードと おたのしみ（情報もりもり） ----------
+  // ---------- 2まいめ：モードと おたのしみ ----------
   {
     const [c, g] = canvas();
     background(g, 7);
-    title(g, '5つの モードで あそべる！', W / 2, 330, 80, '#fff');
+    title(g, '5つの モードで あそべる！', W / 2, 300, 78, '#fff');
     const modes = [
-      ['♾️', 'とことんモード', 'つみあがるまで ずっと。100まんてんで…？', '#ff4d6d'],
-      ['⏱️', 'タイムアタック', `${CFG.timeAttackSeconds}びょうで スコアかせぎ`, '#2fbf6f'],
-      ['✨', 'ぜんけしアタック', 'ぜんぶ けすまでの タイムを きそう', '#ff8a3d'],
-      ['⚔️', 'CPU たいせん', 'おじゃまぷよで しょうぶ（3だんかい）', '#a66bff'],
-      ['🥋', 'くみて', 'かちぬき戦。かつほど あいてが つよくなる', '#4d8bff'],
+      ['♾️', 'とことんモード', 'つみあがるまで ずっと。25手ごとに スピードアップ', ['100まん点で エンディング', '10れんさ＝約10まん点'], COLORS[0]],
+      ['⏱️', 'タイムアタック', `${CFG.timeAttackSeconds}びょうで どこまで スコアを かせげるか`, ['みじかい じかんで サクッと', 'ハイスコア きそう'], COLORS[1]],
+      ['✨', 'ぜんけしアタック', 'ぷよを ぜんぶ けすまでの タイムを きそう', ['はいち 36パターン', 'ぷよ 3〜5しゅるい'], COLORS[5]],
+      ['⚔️', 'CPU たいせん', 'れんさで おじゃまぷよを おくりあう たいせん', ['よわい・ふつう・つよい', 'ぷよぷよ通 ルール'], COLORS[4]],
+      ['🥋', 'くみて', 'CPU と かちぬき戦。かつほど あいてが つよくなる', ['おわりなし', 'なんにん ぬけるか'], COLORS[2]],
     ];
-    modes.forEach(([icon, name, desc, color], i) => {
-      const y = 380 + i * 158;
-      card(g, 70, y, W - 140, 140);
+    modes.forEach(([icon, name, desc, tags, color], i) => {
+      const y = 345 + i * 186, h = 172;
+      card(g, 60, y, W - 120, h);
       g.beginPath();
-      g.arc(160, y + 70, 50, 0, Math.PI * 2);
+      g.arc(140, y + 66, 50, 0, Math.PI * 2);
       g.fillStyle = color;
       g.fill();
       font(g, 50);
       g.textAlign = 'center';
-      g.fillText(icon, 160, y + 88);
-      text(g, name, 240, y + 66, 50, INK, 'left', W - 340, 900);
-      text(g, desc, 240, y + 112, 32, SOFT, 'left', W - 340, 800);
+      g.fillText(icon, 140, y + 84);
+      text(g, name, 210, y + 60, 46, INK, 'left', W - 300, 900);
+      text(g, desc, 210, y + 104, 28, SOFT, 'left', W - 300, 800);
+      let tx = 210;
+      tags.forEach((t) => (tx += tag(g, t, tx, y + 122, 38, color) + 10));
     });
-    title(g, 'ほかにも いろいろ', W / 2, 1230, 60, GOLD);
+    title(g, 'ほかにも いろいろ', W / 2, 1335, 58, GOLD);
     const extras = [
-      ['🏆', 'ぜんこく ランキング', '100いまで のる'],
-      ['🎖️', 'じっせき', '26この トロフィー'],
-      ['📖', 'さたろう ずかん', '16にんの 顔と キャラ'],
+      ['🏆', 'ぜんこく ランキング', '100いまで じどうで のる'],
+      ['🎖️', 'じっせき 26こ', '7れんさ・10にんぬき など'],
+      ['📖', 'さたろう ずかん', '16にんの キャラと けした数'],
       ['📸', 'きろくを シェア', 'ストーリー画像も つくれる'],
+      ['🎵', 'オリジナル BGM', 'タイトル・ゲーム中・エンディング'],
+      ['🔄', 'データ ひきつぎ', 'きしゅへんこう しても OK'],
     ];
     extras.forEach(([icon, name, desc], i) => {
-      const x = 70 + (i % 2) * 480, y = 1262 + Math.floor(i / 2) * 160;
-      card(g, x, y, 460, 146);
-      font(g, 54);
+      const x = 60 + (i % 2) * 490, y = 1368 + Math.floor(i / 2) * 118;
+      card(g, x, y, 470, 106);
+      font(g, 46);
       g.textAlign = 'center';
-      g.fillText(icon, x + 66, y + 92);
-      text(g, name, x + 120, y + 64, 36, INK, 'left', 320, 900);
-      text(g, desc, x + 120, y + 108, 26, SOFT, 'left', 320, 800);
+      g.fillText(icon, x + 52, y + 70);
+      text(g, name, x + 98, y + 46, 32, INK, 'left', 360, 900);
+      text(g, desc, x + 98, y + 86, 23, SOFT, 'left', 360, 800);
     });
     out.story2_mode = c.toDataURL('image/png');
   }
 
-  // ---------- 3まいめ：対戦 ＋ リンク ----------
+  // ---------- 3まいめ：さたろう ずかん（16にん） ----------
+  {
+    const [c, g] = canvas();
+    background(g, 4);
+    title(g, 'おちてくるのは この16にん！', W / 2, 300, 72, '#fff');
+    text(g, 'ぜんいん さたろう。キャラ設定つき', W / 2, 352, 36, '#fff', 'center', W - 120, 900);
+    const cols = 4, gap = 14, cw = (W - 80 - gap * (cols - 1)) / cols, ch = 300;
+    CFG.faces.slice(0, 16).forEach((f, i) => {
+      const x = 40 + (i % cols) * (cw + gap), y = 385 + Math.floor(i / cols) * (ch + gap);
+      card(g, x, y, cw, ch);
+      face(g, faces[i], x + cw / 2, y + 96, 72, COLORS[i % COLORS.length]);
+      text(g, f.name, x + cw / 2, y + 214, 28, INK, 'center', cw - 16, 900);
+      text(g, f.role || '', x + cw / 2, y + 258, 24, SOFT, 'center', cw - 16, 800);
+    });
+    pill(g, 'エンディングでは 16にんから ひとこと…！', W / 2, 1700, 78, GOLD, INK, W - 100);
+    out.story3_zukan = c.toDataURL('image/png');
+  }
+
+  // ---------- 4まいめ：対戦 ＋ リンク ----------
   function cta(adVersion) {
     const [c, g] = canvas();
     background(g, 13);
-    title(g, 'CPU と たいせんも できる！', W / 2, 330, 78, '#fff');
-    photo(g, versus, W / 2, 750, 880, 0.02);
-    burst(g, ['おじゃま', 'ぷよ！'], 880, 880, 100, PINK, 0.2);
-    title(g, 'いますぐ あそぼう！', W / 2, 1255, 104, PINK);
-    text(g, 'むりょう ・ とうろく なし ・ アプリ いらない', W / 2, 1330, 40, '#fff', 'center', W - 140, 900);
+    title(g, 'CPU と たいせん！', W / 2, 290, 80, '#fff');
+    photo(g, versus, W / 2, 640, 740, 0.015);
+    burst(g, ['おじゃま', 'ぷよ！'], 905, 790, 92, PINK, 0.2);
+    // あそびかた 3ステップ
+    const steps = [['1', 'おなじ顔を', '4つ そろえる'], ['2', 'れんさで', 'おじゃまを おくる'], ['3', 'さきに つみあがったら', 'まけ！']];
+    steps.forEach(([n, a, b], i) => {
+      const x = 60 + i * 330, y = 1010;
+      card(g, x, y, 300, 200);
+      g.beginPath();
+      g.arc(x + 150, y + 48, 34, 0, Math.PI * 2);
+      g.fillStyle = COLORS[i];
+      g.fill();
+      title(g, n, x + 150, y + 64, 44, '#fff', 60);
+      text(g, a, x + 150, y + 128, 30, INK, 'center', 280, 900);
+      text(g, b, x + 150, y + 172, 30, INK, 'center', 280, 900);
+    });
+    let tx = 70;
+    [['よわい', COLORS[1]], ['ふつう', COLORS[3]], ['つよい', COLORS[0]], ['くみて（かちぬき）', COLORS[2]]].forEach(([l, col]) => (tx += tag(g, l, tx, 1238, 56, col) + 14));
+    title(g, 'いますぐ あそぼう！', W / 2, 1405, 100, PINK);
+    text(g, 'むりょう ・ とうろく なし ・ アプリ いらない', W / 2, 1470, 38, '#fff', 'center', W - 140, 900);
     if (adVersion) {
-      title(g, '▼ 下の ボタンから すぐ あそべる ▼', W / 2, 1440, 50, GOLD, W - 120);
+      title(g, '▼ 下の ボタンから すぐ あそべる ▼', W / 2, 1550, 48, GOLD, W - 120);
     } else {
-      // この下（だいたい y=1450〜1620）は あけておく。インスタの「リンク」スタンプを あとで はる
-      title(g, '▼ リンクから すぐ あそべる ▼', W / 2, 1410, 50, GOLD, W - 120);
+      // この下（だいたい y=1570〜1760）は あけておく。インスタの「リンク」スタンプを あとで はる
+      title(g, '▼ リンクから すぐ あそべる ▼', W / 2, 1550, 48, GOLD, W - 120);
     }
     return c.toDataURL('image/png');
   }
-  out.story3_link = cta(false);
-  out.story3_ad = cta(true);
+  out.story4_link = cta(false);
+  out.story4_ad = cta(true);
   return out;
 };
