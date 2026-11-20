@@ -32,11 +32,17 @@ const dataUrl = await page.evaluate(async () => {
   const load = (src) => new Promise((ok) => { const i = new Image(); i.onload = i.onerror = () => ok(i); i.src = src; });
   const faces = await Promise.all([11, 2, 5, 9, 16].map((n) => load(CFG.faces[n - 1].src)));
   const logo = await load(CFG.images.logo);
+  const fieldBg = await load(CFG.images.fieldBg);
+  const qr = await load('assets/ui/qr.png');
   return Share.card({
     mode: 'さたろうの顔が おちてくる ぷよぷよ風パズル',
-    big: '5', unit: 'モードで あそべる',
-    sub: 'とことん・タイム・ぜんけし・たいせん・くみて',
-    face: faces[0], faces: faces.slice(1), logo,
+    name: 'ブラウザで すぐ あそべる', date: 'PC・スマホ',
+    badge: '5つの モード', big: 'さたぷよ', unit: '',
+    stats: [['とことん', 'ずっと'], ['タイムアタック', '120びょう'], ['CPU たいせん', '3だんかい'], ['くみて', 'かちぬき']],
+    extra: [['ぜんけし', 'アタック'], ['ランキング', 'ぜんこく'], ['じっせき', '26こ'], ['ずかん', '16にん']],
+    chainLog: [1, 2, 1, 3, 2, 4, 1, 5, 3, 6, 2, 7, 4, 8],
+    face: faces[0], faces: faces.slice(1).map((img, i) => ({ img, count: [38, 29, 21, 12][i] })),
+    stamp: 'ばよえ〜ん!!', stampColor: '#ffb703', logo, fieldBg, qr,
   }).toDataURL('image/png');
 });
 await writeFile(join(root, 'assets/ui/ogp.png'), Buffer.from(dataUrl.split(',')[1], 'base64'));
