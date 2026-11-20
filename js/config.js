@@ -106,7 +106,7 @@ window.GAME_CONFIG = {
 
   // スコアのシェア
   share: {
-    url: 'https://satapuyo.com/',
+    url: 'https://woody-510.github.io/satapuyo/',
     hashtags: ['さたぷよ'],
     catch: 'さたろうの顔が落ちてくる ぷよぷよ風パズル「さたぷよ」。ブラウザですぐ遊べるよ！',
   },

@@ -1166,7 +1166,7 @@
   // ---------------- シェア ----------------
   const imgOf = (src) => faceImgs[CFG.faces.findIndex((f) => f.src === src)] || Object.assign(new Image(), { src });
   const fieldBgImg = Object.assign(new Image(), { src: CFG.images.fieldBg });
-  const qrImg = Object.assign(new Image(), { src: 'assets/ui/qr.png' }); // satapuyo.com の QR（tools/make_qr.py で作成）
+  const qrImg = Object.assign(new Image(), { src: 'assets/ui/qr.png' }); // ゲームのURLの QR（tools/make_qr.py で作成）
   const isTouch = window.matchMedia && matchMedia('(pointer: coarse)').matches;
   let shareFile = null, shareUrl = '', shareFormat = 'wide';
 
