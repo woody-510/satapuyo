@@ -52,6 +52,13 @@ window.drawStoryAds = async function () {
     g.fillStyle = color;
     g.fillText(str, x, y);
   }
+  // いちばん下の ちいさい注意書き（4まい全部）
+  function note(g) {
+    g.save();
+    g.globalAlpha = 0.85;
+    text(g, 'この作品はフィクションであり、実在の人物・団体・出来事などとは関係ありません', W / 2, 1880, 22, '#fff', 'center', W - 80, 700);
+    g.restore();
+  }
   function face(g, img, cx, cy, r, ring) {
     g.save();
     g.beginPath();
@@ -222,6 +229,7 @@ window.drawStoryAds = async function () {
     const chips = ['むりょう', 'とうろく なし', 'スマホ・PC'];
     chips.forEach((l, i) => pill(g, l, 200 + i * 340, 1610, 76, ['#2fbf6f', '#4d8bff', '#ff8a3d'][i], '#fff', 320));
     text(g, '♪ オリジナル BGM ＆ さたろう本人の ボイス つき', W / 2, 1712, 36, '#fff', 'center', W - 120, 900);
+    note(g);
     out.story1_tsukami = c.toDataURL('image/png');
   }
 
@@ -270,6 +278,7 @@ window.drawStoryAds = async function () {
       text(g, name, x + 98, y + 46, 32, INK, 'left', 360, 900);
       text(g, desc, x + 98, y + 86, 23, SOFT, 'left', 360, 800);
     });
+    note(g);
     out.story2_mode = c.toDataURL('image/png');
   }
 
@@ -288,6 +297,7 @@ window.drawStoryAds = async function () {
       text(g, f.role || '', x + cw / 2, y + 258, 24, SOFT, 'center', cw - 16, 800);
     });
     pill(g, 'エンディングでは 16にんから ひとこと…！', W / 2, 1700, 78, GOLD, INK, W - 100);
+    note(g);
     out.story3_zukan = c.toDataURL('image/png');
   }
 
@@ -321,6 +331,7 @@ window.drawStoryAds = async function () {
       // この下（だいたい y=1570〜1760）は あけておく。インスタの「リンク」スタンプを あとで はる
       title(g, '▼ リンクから すぐ あそべる ▼', W / 2, 1550, 48, GOLD, W - 120);
     }
+    note(g);
     return c.toDataURL('image/png');
   }
   out.story4_link = cta(false);
